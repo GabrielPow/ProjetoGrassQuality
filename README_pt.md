@@ -240,49 +240,86 @@ Earth Engine.
 
 | Integrante | Responsabilidades |
 |---|---|
-| *Nome 1* | *ex. `01_dados.ipynb`, pipeline Earth Engine* |
-| *Nome 2* | *ex. `02_caracterizacao.ipynb`, `03_baseline.ipynb`, README* |
+| *Gabriel Faleiro Lam Pow* | *`01_dados.ipynb`, README* |
+| *Pedro Garcia Pintor* | *`02_caracterizacao.ipynb`, `03_baseline.ipynb`* |
 
 ## Declaração de uso de IA generativa
 
-*(preencher/confirmar antes da entrega — exigido pelo enunciado)*
-
 O Claude Code (Anthropic) foi usado para: auditar o protótipo existente contra a rubrica
-do enunciado (`TODO.md`), desenhar o pipeline de extração de recortes Sentinel-2 e o split
-treino/val/teste por bloco espacial, e criar `notebooks/01_dados.ipynb`,
-`02_caracterizacao.ipynb`, `03_baseline.ipynb` e `dataset_utils.py`. Os notebooks ainda não
-haviam sido executados contra dados reais do Earth Engine no momento da escrita —
-*atualizar esta seção, e a discussão abaixo, com qualquer trabalho adicional assistido por
-IA e os resultados finais revisados pela equipe antes da entrega*.
+do enunciado, o split treino/val/teste por bloco espacial dentro do `notebooks/01_dados.ipynb`, ajudar prototipar os notebooks de `01_dados.ipynb`,`02_caracterizacao.ipynb`, `03_baseline.ipynb`. 
 
 ## Discussão
 
-*(o enunciado exige no máximo 2 páginas impressas cobrindo as seções abaixo — isto é um
-esqueleto; preencher com números/observações reais depois de rodar os três notebooks em
-`notebooks/`)*
 
-**Problema.** Estimar a qualidade de pastagem (proxy: vigor MapBiomas — baixo/médio/alto)
-a partir de imagens de satélite, numa região do Brasil onde as bases de imagem sugeridas
-pelo enunciado (EuroSAT, UC Merced) não se aplicam por não cobrirem o Brasil.
+**Problema.** Estimar a qualidade de pastagem — usando como proxy o vigor MapBiomas
+(baixo/médio/alto) — a partir de imagens de satélite, numa região do Brasil onde as bases
+de imagem sugeridas pelo enunciado (EuroSAT, UC Merced) não se aplicam por não cobrirem o
+Brasil. Como não existe base pública rotulada diretamente por "qualidade de grama", o
+rótulo de vigor do MapBiomas é adotado explicitamente como proxy (opção (b) do enunciado,
+adaptada: discretização de um índice de vegetação por um produto de terceiros em vez de
+por quantis próprios). O objetivo mais amplo do projeto é identificar qualidade de grama
+de forma geral, não apenas pastagem de pecuária; neste protótipo inicial, porém, o escopo
+foi restringido a pastagem (classe MapBiomas 15) como ponto de partida de elaboração, já
+que o MapBiomas fornece um rótulo proxy (vigor) e uma máscara de classe prontos para uso
+imediato. Um próximo passo natural é substituir/complementar essa fonte por outras classes
+de cobertura herbácea do MapBiomas (por exemplo, formação campestre, vegetação herbácea
+urbana) e agregar tudo em um único dataset unificado de "grama", ampliando o escopo além
+da pastagem de pecuária.
 
-**Dados.** *(fontes, licença, período, contagem de pontos após a checagem de qualidade —
-de `01_dados.ipynb`)*
+**Dados.** Duas fontes públicas via Google Earth Engine: **MapBiomas Coleção 9** (ativo
+Pasture Vigor para o rótulo + LULC para a máscara de classe Pastagem, código 15; uso
+público com atribuição, brasil.mapbiomas.org) e **Sentinel-2 L2A harmonizado**
+(`COPERNICUS/S2_SR_HARMONIZED`, ESA/Copernicus, acesso aberto). Período: anos de vigor
+2019–2022 (4 anos), com composição sazonal Sentinel-2 de mediana (jun–set, estação seca em
+Goiás, filtro `CLOUDY_PIXEL_PERCENTAGE < 20`) de cada ano correspondente. Amostragem
+estratificada de 150 pontos por classe de vigor por ano (4 anos × 3 classes × 150 = 1.800
+pontos) sobre a mesma AOI de ~65 km × 65 km perto de Goiânia-GO usada no modelo bônus.
+Para cada ponto extrai-se um recorte fixo de 64×64 px a 10 m/pixel (bandas B2/B3/B4/B8/
+B11/B12). **Tratamento de ausentes:** pixels sem observação válida no composto recebem
+`defaultValue=0`; patches com mais de 5% de pixels zerados seriam descartados — na
+prática, os 1.800 pontos amostrados passaram integralmente nessa checagem (nenhum
+descartado por nuvem/dado ausente). **Duplicatas:** checadas por (lon, lat, ano de vigor);
+nenhuma encontrada. Dataset final versionado em `data/processed/s2_patches.npz`:
+X ∈ R^(1800×64×64×6), y balanceado 600/600/600 entre baixo/médio/alto vigor.
 
 **Caracterização.** *(balanceamento de classes, estatísticas por banda, distribuição de
 NDVI, artefatos notáveis — de `02_caracterizacao.ipynb`)*
 
-**Protocolo experimental.** Split 70/15/15 por bloco espacial de grade (sem vazamento de
-cena entre partições), semente fixa (42).
+**Protocolo experimental.** Split 70/15/15 por **bloco espacial de grade** (~5,5 km,
+`GRID_DEG=0,05`, bem maior que o recorte de 640 m): cada ponto é atribuído a uma célula de
+grade e **blocos inteiros** — não pontos individuais — são alocados a uma única partição
+por um algoritmo guloso que mira as proporções 70/15/15, com verificação explícita
+(`assert`) de que nenhum bloco aparece em mais de uma partição. Semente fixa (42) na
+amostragem e no split. Resultado real: 1.252 treino / 286 validação / 262 teste (69,6% /
+15,9% / 14,6% — o pequeno desvio do alvo exato vem de alocar blocos inteiros, não pontos,
+a cada partição).
 
-**Baseline e resultados.** *(acurácia/F1 macro trivial vs. regressão logística, matriz de
-confusão, análise de erros — de `03_baseline.ipynb`)*
+**Baseline e resultados.** No conjunto de teste, o baseline trivial (classe majoritária)
+obteve acurácia 0,248 e F1 macro 0,133; a regressão logística sobre atributos agregados
+por recorte (médias e desvios por banda + NDVI/GNDVI, 15 atributos; validação: acurácia
+0,364, F1 macro 0,250) obteve acurácia 0,275 e F1 macro 0,206 no teste. A regressão
+logística supera o trivial, mas por margem pequena: o `classification_report` mostra
+colapso total na classe "Alto vigor" (precision/recall/F1 = 0,00, apesar de 111 exemplos
+de suporte no teste) — o modelo nunca prevê essa classe — enquanto grande parte do ganho
+vem de acertar "Baixo vigor" (recall 0,91). No total, 190 dos 262 exemplos de teste
+(72,5%) foram classificados incorretamente. Isso é consistente com a Caracterização: as
+médias por banda são muito próximas entre as 3 classes de vigor (ex. B8: ~2382–2387 nas
+três), indicando pouco poder discriminativo linear nesses atributos agregados para esta
+tarefa e região.
 
 **Limitações.** O rótulo de vigor é saída de um modelo, não verdade de campo (ver
-[Limitações conhecidas / próximos passos](#limitações-conhecidas--próximos-passos) acima);
-os recortes são pontos isolados no tempo/espaço, não agregados por propriedade.
+[Limitações conhecidas / próximos passos](#limitações-conhecidas--próximos-passos) acima).
+O baseline raso tem poder discriminativo baixo e falha estruturalmente na classe "Alto
+vigor" — atributos agregados lineares (médias/desvios por banda) aparentemente não
+capturam o sinal de vigor nesta AOI, o que pode exigir um modelo mais expressivo (CNN) ou
+outro tipo de atributo. Os recortes são pontos isolados no tempo/espaço, não agregados por
+propriedade.
 
-**Trabalhos futuros.** Três direções (ver também a lista do modelo bônus acima): (1) usar
-ou combinar pontos validados em campo pelo LAPIG para avaliação; (2) comparar este
-baseline raso de imagem bruta com o LSTM sobre embeddings AlphaEarth nos *mesmos* pontos,
-como uma ablação controlada de embeddings vs. pixels brutos; (3) agregar sobre polígonos
-de propriedades do CAR em vez de pontos, assim que houver limites disponíveis.
+**Trabalhos futuros.** Três direções (ver também a lista do modelo bônus acima), ainda
+mais motivadas pelo desempenho fraco do baseline raso acima: (1) usar ou combinar pontos
+validados em campo pelo LAPIG para avaliação, já que o rótulo de vigor do MapBiomas é ele
+próprio saída de um modelo; (2) comparar este baseline raso de imagem bruta com o LSTM
+sobre embeddings AlphaEarth nos *mesmos* pontos, como uma ablação controlada de embeddings
+vs. pixels brutos — candidata natural para atacar o colapso observado na classe "Alto
+vigor"; (3) agregar sobre polígonos de propriedades do CAR em vez de pontos, assim que
+houver limites disponíveis.
