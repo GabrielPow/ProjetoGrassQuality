@@ -281,9 +281,35 @@ prática, os 1.800 pontos amostrados passaram integralmente nessa checagem (nenh
 descartado por nuvem/dado ausente). **Duplicatas:** checadas por (lon, lat, ano de vigor);
 nenhuma encontrada. Dataset final versionado em `data/processed/s2_patches.npz`:
 X ∈ R^(1800×64×64×6), y balanceado 600/600/600 entre baixo/médio/alto vigor.
+**Correção de tratamento:** a extração original amostrava o mosaico Sentinel-2 sem fixar
+sua projeção/escala nativa antes do `sampleRectangle`, que acabava amostrando numa grade
+padrão bem mais grosseira que 10 m — cada patch virava, na prática, um único valor de
+pixel replicado por toda a área 64×64 (quase sem variação espacial real). Corrigido
+reprojetando o mosaico para `EPSG:4326` a 10 m/pixel antes da extração, verificado por um
+smoke test em 2 pontos (desvio espacial > 0 e centenas de valores únicos por banda) antes
+de repetir a extração completa dos 1.800 pontos; os números acima já refletem essa versão
+corrigida.
 
-**Caracterização.** *(balanceamento de classes, estatísticas por banda, distribuição de
-NDVI, artefatos notáveis — de `02_caracterizacao.ipynb`)*
+**Caracterização.** As 3 classes de vigor são balanceadas por construção (600/600/600 no
+total) e nenhum patch foi perdido na checagem de qualidade de `01_dados.ipynb` (100%
+aprovados), então o tratamento de dados não introduz desbalanceamento. A distribuição por
+*partição*, porém, não é uniforme — reflexo do split por bloco espacial, não da classe:
+teste tem 111 "Alto vigor" / 86 "Médio vigor" / 65 "Baixo vigor"; treino 402/402/448;
+validação 87/112/87 (mesma ordem). Estatísticas por banda (média ± desvio, mín.–máx.): B2
+555,6±188,7 (53–5448), B3 873,5±260,1 (113–5736), B4 1252,0±460,4 (80–6048), B8
+2543,3±472,1 (59–6533,5), B11 3081,8±707,8 (125–6759), B12 2066,1±581,9 (86–6826) — o
+intervalo mín.–máx. bem mais largo que média±3σ em todas as bandas sugere pixels de
+outlier residuais (possível nuvem/sombra/brilho) mesmo após o filtro de <5% de pixels
+zerados por patch. Por classe, B8 (NIR) e as bandas SWIR (B11/B12) já mostram alguma
+separação fisicamente esperada: "Alto vigor" tem a maior média de B8 (2682 vs. 2405 em
+"Baixo vigor") e as menores médias de B11/B12 — padrão consistente com dossel vegetal mais
+denso/menos solo exposto em vigor mais alto, e coerente com a regressão logística
+conseguir separar as 3 classes razoavelmente bem (ver Baseline e resultados). NDVI médio
+geral: 0,355 (desvio 0,076) — típico de pastagem, com sobreposição visível entre classes
+no histograma (`02_caracterizacao.ipynb`), sem um limiar único que as separe claramente.
+Sazonalidade controlada por desenho: todos os compostos usam a mesma janela jun–set
+(estação seca) do ano do ponto, o que deve reduzir o efeito de variação sazonal entre os 4
+anos amostrados (2019–2022) — não testado estatisticamente aqui.
 
 **Protocolo experimental.** Split 70/15/15 por **bloco espacial de grade** (~5,5 km,
 `GRID_DEG=0,05`, bem maior que o recorte de 640 m): cada ponto é atribuído a uma célula de
@@ -295,31 +321,33 @@ amostragem e no split. Resultado real: 1.252 treino / 286 validação / 262 test
 a cada partição).
 
 **Baseline e resultados.** No conjunto de teste, o baseline trivial (classe majoritária)
-obteve acurácia 0,248 e F1 macro 0,133; a regressão logística sobre atributos agregados
+obteve acurácia 0,248 e F1 macro 0,133. A regressão logística sobre atributos agregados
 por recorte (médias e desvios por banda + NDVI/GNDVI, 15 atributos; validação: acurácia
-0,364, F1 macro 0,250) obteve acurácia 0,275 e F1 macro 0,206 no teste. A regressão
-logística supera o trivial, mas por margem pequena: o `classification_report` mostra
-colapso total na classe "Alto vigor" (precision/recall/F1 = 0,00, apesar de 111 exemplos
-de suporte no teste) — o modelo nunca prevê essa classe — enquanto grande parte do ganho
-vem de acertar "Baixo vigor" (recall 0,91). No total, 190 dos 262 exemplos de teste
-(72,5%) foram classificados incorretamente. Isso é consistente com a Caracterização: as
-médias por banda são muito próximas entre as 3 classes de vigor (ex. B8: ~2382–2387 nas
-três), indicando pouco poder discriminativo linear nesses atributos agregados para esta
-tarefa e região.
+0,671, F1 macro 0,674) obteve acurácia 0,641 e F1 macro 0,630 no teste — mais que o dobro
+do trivial em acurácia e quase 5× em F1 macro. O `classification_report` mostra
+desempenho equilibrado entre as 3 classes, sem colapso em nenhuma: Baixo vigor (precisão
+0,62 / recall 0,69 / F1 0,66, suporte 65), Médio vigor (0,52 / 0,47 / 0,49, suporte 86),
+Alto vigor (0,73 / 0,75 / 0,74, suporte 111) — essa última é, na verdade, a classe mais
+bem discriminada. No total, 94 dos 262 exemplos de teste (35,9%) foram classificados
+incorretamente. Esse resultado é bem mais forte que numa versão anterior deste pipeline
+(acurácia de teste ~0,275, com colapso total na classe "Alto vigor"), rodada antes da
+correção da extração de patches Sentinel-2 descrita em Dados — evidência de que o ganho
+veio de corrigir a captura de sinal espacial real nas bandas, não de mudança na amostragem
+de pontos ou no rótulo.
 
 **Limitações.** O rótulo de vigor é saída de um modelo, não verdade de campo (ver
 [Limitações conhecidas / próximos passos](#limitações-conhecidas--próximos-passos) acima).
-O baseline raso tem poder discriminativo baixo e falha estruturalmente na classe "Alto
-vigor" — atributos agregados lineares (médias/desvios por banda) aparentemente não
-capturam o sinal de vigor nesta AOI, o que pode exigir um modelo mais expressivo (CNN) ou
-outro tipo de atributo. Os recortes são pontos isolados no tempo/espaço, não agregados por
-propriedade.
+Os recortes são pontos isolados no tempo/espaço, não agregados por propriedade. O NDVI
+médio por classe se sobrepõe bastante (a Caracterização mostra histogramas sem um limiar
+único que separe as 3 classes), e o intervalo mín.–máx. das bandas sugere outliers
+residuais (possível nuvem/sombra) que passam pelo filtro de <5% de pixels zerados — uma
+checagem de qualidade mais rígida (ex. por desvio por banda, não só fração de zeros)
+poderia ser um refinamento futuro.
 
-**Trabalhos futuros.** Três direções (ver também a lista do modelo bônus acima), ainda
-mais motivadas pelo desempenho fraco do baseline raso acima: (1) usar ou combinar pontos
-validados em campo pelo LAPIG para avaliação, já que o rótulo de vigor do MapBiomas é ele
-próprio saída de um modelo; (2) comparar este baseline raso de imagem bruta com o LSTM
-sobre embeddings AlphaEarth nos *mesmos* pontos, como uma ablação controlada de embeddings
-vs. pixels brutos — candidata natural para atacar o colapso observado na classe "Alto
-vigor"; (3) agregar sobre polígonos de propriedades do CAR em vez de pontos, assim que
-houver limites disponíveis.
+**Trabalhos futuros.** Três direções (ver também a lista do modelo bônus acima): (1) usar
+ou combinar pontos validados em campo pelo LAPIG para avaliação, já que o rótulo de vigor
+do MapBiomas é ele próprio saída de um modelo; (2) comparar este baseline raso de imagem
+bruta com o LSTM sobre embeddings AlphaEarth nos *mesmos* pontos, como uma ablação
+controlada de embeddings vs. pixels brutos — agora que o baseline raso captura sinal
+espacial real, essa comparação fica mais informativa; (3) agregar sobre polígonos de
+propriedades do CAR em vez de pontos, assim que houver limites disponíveis.
