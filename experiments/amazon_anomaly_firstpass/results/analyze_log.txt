@@ -1,0 +1,57 @@
+complete rows: 2400/2400  (dropped by stratum: {})
+
+== all anomalies vs all normals  (n=671, positives=340)
+                     score  AUROC  AUROC_lo  AUROC_hi    AP  TPR_at_5FPR
+      AE cosine change (T)  0.890     0.862     0.918 0.914        0.676
+    AE cosine change (T+1)  0.889     0.867     0.915 0.911        0.668
+       AE kNN on delta (T)  0.890     0.858     0.918 0.913        0.682
+AE kNN static, no time (T)  0.926     0.900     0.950 0.934        0.662
+             NDVI drop (T)  0.819     0.784     0.851 0.858        0.488
+              NBR drop (T)  0.815     0.783     0.847 0.836        0.424
+      S2 band distance (T)  0.786     0.733     0.831 0.820        0.409
+    S2 band distance (T+1)  0.752     0.707     0.802 0.774        0.291
+       S2 kNN on delta (T)  0.783     0.734     0.831 0.815        0.424
+
+== deforest vs stable forest  (n=316, positives=150)
+                     score  AUROC  AUROC_lo  AUROC_hi    AP  TPR_at_5FPR
+      AE cosine change (T)  0.985     0.969     0.994 0.981        0.940
+    AE cosine change (T+1)  0.983     0.969     0.992 0.980        0.893
+       AE kNN on delta (T)  0.986     0.972     0.996 0.983        0.940
+AE kNN static, no time (T)  0.977     0.958     0.991 0.970        0.907
+             NDVI drop (T)  0.876     0.833     0.918 0.910        0.720
+              NBR drop (T)  0.913     0.874     0.946 0.932        0.760
+      S2 band distance (T)  0.900     0.865     0.928 0.910        0.673
+    S2 band distance (T+1)  0.914     0.874     0.950 0.913        0.740
+       S2 kNN on delta (T)  0.929     0.897     0.953 0.926        0.727
+
+== deforest vs stable pasture  (n=315, positives=150)
+                     score  AUROC  AUROC_lo  AUROC_hi    AP  TPR_at_5FPR
+      AE cosine change (T)  0.854     0.800     0.897 0.887        0.660
+    AE cosine change (T+1)  0.863     0.823     0.903 0.890        0.627
+       AE kNN on delta (T)  0.816     0.761     0.869 0.863        0.640
+AE kNN static, no time (T)  0.817     0.751     0.873 0.815        0.387
+             NDVI drop (T)  0.749     0.690     0.804 0.718        0.240
+              NBR drop (T)  0.761     0.699     0.823 0.728        0.220
+      S2 band distance (T)  0.581     0.506     0.650 0.603        0.160
+    S2 band distance (T+1)  0.572     0.505     0.634 0.561        0.093
+       S2 kNN on delta (T)  0.550     0.472     0.620 0.574        0.140
+
+== mining vs all normals  (n=521, positives=190)
+                     score  AUROC  AUROC_lo  AUROC_hi    AP  TPR_at_5FPR
+      AE cosine change (T)  0.866     0.823     0.907 0.857        0.674
+    AE cosine change (T+1)  0.861     0.822     0.900 0.844        0.632
+       AE kNN on delta (T)  0.881     0.841     0.918 0.871        0.695
+AE kNN static, no time (T)  0.948     0.921     0.970 0.937        0.811
+             NDVI drop (T)  0.824     0.776     0.871 0.830        0.621
+              NBR drop (T)  0.798     0.748     0.842 0.765        0.468
+      S2 band distance (T)  0.821     0.772     0.868 0.805        0.563
+    S2 band distance (T+1)  0.759     0.713     0.813 0.723        0.411
+       S2 kNN on delta (T)  0.816     0.767     0.866 0.804        0.595
+
+== AUROC by event year (all anomalies vs all normals)
+ score  AE cosine change (T)  NDVI drop (T)  S2 band distance (T)
+T                                                               
+2021                  0.908          0.859                 0.810
+2022                  0.895          0.872                 0.781
+2023                  0.821          0.714                 0.726
+2024                  0.918          0.850                 0.825
