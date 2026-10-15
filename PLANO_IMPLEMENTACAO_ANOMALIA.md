@@ -89,13 +89,18 @@ pontos do first pass) continua aberto: o teste aqui usou um tensor aleatório.
 
 Definir isso **antes** de treinar evita ajustar o protocolo ao resultado.
 
+> **Status (15/10):** protocolo fixado em [notebooks/gabriel/PROTOCOLO.md](notebooks/gabriel/PROTOCOLO.md);
+> código em `rotulos.py`, `avaliacao.py` e `02_rotulos.ipynb`. PRODES e DETER já foram testados localmente
+> nas duas AOIs. **Falta** rodar o notebook no Colab para as fontes do Earth Engine (Hansen, MapBiomas,
+> MCD64A1) e conferir os normais por cobertura.
+
 ### 2.1 Áreas de estudo (AOIs)
-- [ ] **AOI principal:** Tapajós / BR-163 (PA), a mesma do first pass. Tem desmatamento,
+- [x] **AOI principal:** Tapajós / BR-163 (PA), a mesma do first pass. Tem desmatamento,
       garimpo e queimadas.
-- [ ] **AOI de generalização:** uma segunda região nunca vista no treino. Sugestões:
+- [x] **AOI de generalização:** uma segunda região nunca vista no treino. Sugestões:
       sul do Amazonas (Lábrea/Apuí) ou norte de Rondônia. Serve para responder "o modelo
       aprendeu o normal da floresta ou só desta região?".
-- [ ] **Período:** 2019–2025. O Sentinel-2 L2A tem cobertura confiável na Amazônia a
+- [x] **Período:** 2019–2025. O Sentinel-2 L2A tem cobertura confiável na Amazônia a
       partir do fim de 2018.
 
 ### 2.2 Rótulos (somente para avaliação; o modelo não os vê)
@@ -109,29 +114,29 @@ Definir isso **antes** de treinar evita ajustar o protocolo ao resultado.
 | **MapBiomas Água** | Superfície d'água anual | Alterações em rios e corpos d'água |
 | **Hansen GFC** (`lossyear`) | Perda de cobertura arbórea | Checagem cruzada |
 
-- [ ] Script que gera, para cada patch e cada passo de tempo, o rótulo de cada tipo de
+- [x] Script que gera, para cada patch e cada passo de tempo, o rótulo de cada tipo de
       perturbação, a fração do patch afetada e a data do evento.
-- [ ] Definir **"normal" para o treino**: patches sem nenhum evento em nenhuma fonte, no
+- [x] Definir **"normal" para o treino**: patches sem nenhum evento em nenhuma fonte, no
       período inteiro de treino. Incluir floresta, pastagem, agricultura e água estáveis,
       porque o modelo precisa aprender que pastagem varia sem ser anomalia.
 
 ### 2.3 Divisão dos dados
-- [ ] **Espacial:** blocos de ~10 km; nenhum bloco aparece em mais de uma partição
+- [x] **Espacial:** blocos de ~10 km; nenhum bloco aparece em mais de uma partição
       (mesma lógica de `assign_blocks_to_splits` já usada no repositório).
-- [ ] **Temporal:** treino com sequências terminando até 2022; avaliação em eventos de
+- [x] **Temporal:** treino com sequências terminando até 2022; avaliação em eventos de
       2023–2025.
-- [ ] **AOI de generalização:** só teste.
+- [x] **AOI de generalização:** só teste.
 
 ### 2.4 Métricas
-- [ ] **AUROC e AUPRC na prevalência real** (sem balancear as classes no teste).
-- [ ] **TPR a 1% e 5% de FPR** e **precisão@k**: das k regiões mais anômalas do mapa,
+- [x] **AUROC e AUPRC na prevalência real** (sem balancear as classes no teste).
+- [x] **TPR a 1% e 5% de FPR** e **precisão@k**: das k regiões mais anômalas do mapa,
       quantas são eventos reais (é como o mapa seria usado na prática).
-- [ ] **Métricas por evento:** fração dos polígonos PRODES/DETER detectados, além da
+- [x] **Métricas por evento:** fração dos polígonos PRODES/DETER detectados, além da
       contagem por pixel.
-- [ ] **Antecedência:** quantos dias depois do alerta DETER (ou antes do PRODES) o modelo
+- [x] **Antecedência:** quantos dias depois do alerta DETER (ou antes do PRODES) o modelo
       sinaliza o evento.
-- [ ] Intervalos de confiança com **bootstrap por blocos** (já implementado no first pass).
-- [ ] Tudo reportado **por tipo de perturbação**.
+- [x] Intervalos de confiança com **bootstrap por blocos** (já implementado no first pass).
+- [x] Tudo reportado **por tipo de perturbação**.
 
 **Entregável:** `rotulos/` gerando um arquivo de rótulos por AOI e um documento curto
 fixando o protocolo.
@@ -333,5 +338,5 @@ experimento que justifica o modelo principal.
 2. Composição trimestral ou mensal? (Mensal dá mais resolução temporal, mas com muito mais
    passos vazios.)
 3. S1 entra já no primeiro modelo ou só como ablação (E5)?
-4. Qual a AOI de generalização?
+4. ~~Qual a AOI de generalização?~~ **Decidido (15/10): norte de Rondônia** `[-64, -10, -62, -8]`.
 5. Quem cuida de cada etapa (o README precisa da divisão de tarefas).
