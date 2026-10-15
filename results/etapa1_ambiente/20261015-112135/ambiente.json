@@ -1,0 +1,84 @@
+{
+  "bibliotecas": [
+    {
+      "lib": "numpy",
+      "ok": true,
+      "versao": "2.5.3",
+      "erro": ""
+    },
+    {
+      "lib": "pandas",
+      "ok": false,
+      "versao": null,
+      "erro": "ImportError: DLL load failed while importing properties: Uma pol\u00edtica de Controle de Aplicativo bloqueou este arquivo."
+    },
+    {
+      "lib": "torch",
+      "ok": true,
+      "versao": "2.14.0+cpu",
+      "erro": ""
+    },
+    {
+      "lib": "terratorch",
+      "ok": false,
+      "versao": null,
+      "erro": "ModuleNotFoundError: No module named 'terratorch'"
+    },
+    {
+      "lib": "sklearn",
+      "ok": false,
+      "versao": null,
+      "erro": "ImportError: DLL load failed while importing _distance_pybind: Uma pol\u00edtica de Controle de Aplicativo bloqueou este arqu"
+    },
+    {
+      "lib": "scipy",
+      "ok": true,
+      "versao": "1.18.1",
+      "erro": ""
+    },
+    {
+      "lib": "rasterio",
+      "ok": false,
+      "versao": null,
+      "erro": "ModuleNotFoundError: No module named 'rasterio'"
+    },
+    {
+      "lib": "xarray",
+      "ok": false,
+      "versao": null,
+      "erro": "ModuleNotFoundError: No module named 'xarray'"
+    },
+    {
+      "lib": "zarr",
+      "ok": false,
+      "versao": null,
+      "erro": "ModuleNotFoundError: No module named 'zarr'"
+    },
+    {
+      "lib": "geopandas",
+      "ok": false,
+      "versao": null,
+      "erro": "ModuleNotFoundError: No module named 'geopandas'"
+    },
+    {
+      "lib": "ee",
+      "ok": true,
+      "versao": "1.7.43",
+      "erro": ""
+    }
+  ],
+  "gpu": {
+    "cuda": false
+  },
+  "terramind": {},
+  "earth_engine": {
+    "error": "RuntimeError: auth disabled in test runner"
+  },
+  "metricas_first_pass": {
+    "AUROC": 0.8896481251110716,
+    "AUROC_lo": 0.8619561401985851,
+    "AUROC_hi": 0.9176714606928377,
+    "AP": 0.9143139440826767,
+    "TPR_at_5FPR": 0.6764705882352942
+  }
+}
