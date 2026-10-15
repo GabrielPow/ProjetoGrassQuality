@@ -1,0 +1,100 @@
+{
+  "name": "etapa1_ambiente",
+  "seed": 42,
+  "created": "2026-10-15T18:31:40",
+  "git": {
+    "commit": "05cd4e28c321f971a5558b1557d2e2c79e4ac379",
+    "branch": "bug-fix-database",
+    "dirty": true
+  },
+  "platform": "Linux-6.6.122+-x86_64-with-glibc2.39",
+  "python": "3.13.15",
+  "in_colab": true,
+  "packages": {
+    "numpy": "2.5.4",
+    "pandas": "2.2.3",
+    "torch": "2.11.0+cu130",
+    "terratorch": "1.2.13",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1",
+    "rasterio": "1.5.2",
+    "xarray": "2026.9.0",
+    "zarr": "3.4.1",
+    "geopandas": "1.2.0",
+    "earthengine-api": "1.7.39"
+  },
+  "config": {
+    "IN_COLAB": true,
+    "REPO_ROOT": "/content/ProjetoGrassQuality",
+    "DATA_ROOT": "/content/drive/MyDrive/ProjetoGrassQuality",
+    "DATA_DIR": "/content/drive/MyDrive/ProjetoGrassQuality/data",
+    "EMBEDDINGS_DIR": "/content/drive/MyDrive/ProjetoGrassQuality/embeddings",
+    "CHECKPOINTS_DIR": "/content/drive/MyDrive/ProjetoGrassQuality/checkpoints",
+    "RESULTS_DIR": "/content/drive/MyDrive/ProjetoGrassQuality/results",
+    "FIRSTPASS_DIR": "/content/ProjetoGrassQuality/experiments/amazon_anomaly_firstpass",
+    "SEED": 42,
+    "EE_PROJECT_ID": "projetograssquality",
+    "AOI_MAIN": [
+      -57.0,
+      -7.5,
+      -55.0,
+      -5.5
+    ],
+    "AOI_GENERALIZATION": null,
+    "YEARS": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "PERIOD": "quarterly",
+    "TRAIN_END_YEAR": 2022,
+    "S2_BANDS": [
+      "B2",
+      "B3",
+      "B4",
+      "B8",
+      "B11",
+      "B12"
+    ],
+    "S1_BANDS": [
+      "VV",
+      "VH"
+    ],
+    "PATCH_SIZE": 224,
+    "RESOLUTION_M": 10,
+    "SPATIAL_BLOCK_KM": 10,
+    "FOREST": [
+      3
+    ],
+    "PASTURE": [
+      15
+    ],
+    "MINING": [
+      30
+    ],
+    "ANTHROPIC": [
+      15,
+      21,
+      9,
+      18,
+      19,
+      20,
+      39,
+      40,
+      41,
+      62,
+      36,
+      46,
+      47,
+      48,
+      24,
+      25,
+      30
+    ],
+    "LULC_ASSET": "projects/mapbiomas-public/assets/brazil/lulc/v1"
+  }
+}

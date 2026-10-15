@@ -1,0 +1,84 @@
+{
+  "bibliotecas": [
+    {
+      "lib": "numpy",
+      "ok": true,
+      "versao": "2.1.3",
+      "erro": ""
+    },
+    {
+      "lib": "pandas",
+      "ok": true,
+      "versao": "2.2.3",
+      "erro": ""
+    },
+    {
+      "lib": "torch",
+      "ok": true,
+      "versao": "2.11.0+cu130",
+      "erro": ""
+    },
+    {
+      "lib": "terratorch",
+      "ok": false,
+      "versao": null,
+      "erro": "ImportError: cannot import name '_slice' from 'numpy._core.umath' (/usr/local/lib/python3.13/dist-packages/numpy/_core/u"
+    },
+    {
+      "lib": "sklearn",
+      "ok": false,
+      "versao": null,
+      "erro": "ImportError: cannot import name '_slice' from 'numpy._core.umath' (/usr/local/lib/python3.13/dist-packages/numpy/_core/u"
+    },
+    {
+      "lib": "scipy",
+      "ok": true,
+      "versao": "1.16.3",
+      "erro": ""
+    },
+    {
+      "lib": "rasterio",
+      "ok": true,
+      "versao": "1.5.2",
+      "erro": ""
+    },
+    {
+      "lib": "xarray",
+      "ok": true,
+      "versao": "2026.9.0",
+      "erro": ""
+    },
+    {
+      "lib": "zarr",
+      "ok": true,
+      "versao": "3.4.1",
+      "erro": ""
+    },
+    {
+      "lib": "geopandas",
+      "ok": true,
+      "versao": "1.2.0",
+      "erro": ""
+    },
+    {
+      "lib": "ee",
+      "ok": true,
+      "versao": "1.7.39",
+      "erro": ""
+    }
+  ],
+  "gpu": {
+    "cuda": false
+  },
+  "terramind": {},
+  "earth_engine": {
+    "lulc_years": 121
+  },
+  "metricas_first_pass": {
+    "AUROC": 0.8896481251110716,
+    "AUROC_lo": 0.8619561401985851,
+    "AUROC_hi": 0.9176714606928377,
+    "AP": 0.9143139440826767,
+    "TPR_at_5FPR": 0.6764705882352942
+  }
+}

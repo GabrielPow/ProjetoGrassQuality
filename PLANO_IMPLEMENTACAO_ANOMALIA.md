@@ -70,10 +70,14 @@ que features espectrais. A hipótese central do PLAN.md se sustenta.
       ```
       Reaproveitar `common.py` (estratos MapBiomas, composição S2 com Cloud Score+) e as
       métricas de `analyze.py` do first pass.
-- [ ] **Novo `requirements.txt`** com versões fixadas: `terratorch`, `torch`,
+- [x] **Novo `requirements.txt`** com versões fixadas: `terratorch`, `torch`,
       `rasterio`, `xarray`, `zarr`, `scikit-learn`, `earthengine-api`, `geopandas`.
-      *Feito `requirements-colab.txt`; falta gerar `requirements-colab.lock.txt` rodando o
-      `01_ambiente.ipynb` no Colab.*
+      *Feito: `requirements-colab.txt` + `requirements-colab.lock.txt` (versões do Colab).*
+
+**Resultado (15/10, Colab T4):** `torch.cuda.is_available() == True`; TerraMind Small carrega como
+`terratorch_terramind_v1_small` (terratorch 1.2.13) e devolve 12 camadas de 196 × 384 tokens em
+~10 ms/patch. Log em `results/etapa1_ambiente/20261015-183140/`. O gate da Etapa 4 (TerraMind nos
+pontos do first pass) continua aberto: o teste aqui usou um tensor aleatório.
 - [x] **Sementes fixas e log de experimentos.** (`utils.set_seed` e `utils.new_run`) Cada execução salva sua config, sua
       semente e o commit do git junto aos resultados.
 

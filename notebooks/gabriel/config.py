@@ -40,6 +40,12 @@ PATCH_SIZE = 224
 RESOLUTION_M = 10
 SPATIAL_BLOCK_KM = 10
 
+# ---- TerraMind (confirmado no Colab em 15/10, terratorch 1.2.13) ----
+TERRAMIND_SMALL = 'terratorch_terramind_v1_small'
+TERRAMIND_S2_CHANNELS = 12      # S2L2A: B1–B12 sem B10
+TERRAMIND_EMBED_DIM = 384
+TERRAMIND_TOKEN_GRID = 14       # 224 px / 16 px -> 14 x 14 = 196 tokens
+
 # ---- classes MapBiomas: reaproveitadas do first pass (common.py só importa ee, não inicializa) ----
 sys.path.insert(0, str(FIRSTPASS_DIR))
 from common import FOREST, PASTURE, MINING, ANTHROPIC, LULC_ASSET  # noqa: E402
