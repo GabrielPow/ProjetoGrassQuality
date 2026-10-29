@@ -41,6 +41,13 @@ alertas DETER entre as candidatas (11,4 mil de desmatamento desde 2019). Ela qua
 - **Treino do modelo:** patches `normal_treino` de `train`, até 2022. **Ajuste de hiperparâmetros e limiar:** patches `val` (limpos), nunca rótulos de anomalia.
 - **Teste:** blocos `test` do Tapajós em 2023–2025; e `norte_ro` inteiro (`test_gen`) em 2023–2025.
 
+- **Instantâneo dos rótulos:** o INPE edita PRODES/DETER depois de publicar. Entre 15/10 e 29/10, o PRODES
+  do Tapajós passou de 8.507 para 8.506 polígonos. Os GeoPackages em `rotulos/<aoi>/cache/` no Drive
+  (primeiro download) são a referência; não apagar.
+- **Sub-AOI de 16 × 16 patches (Etapa 3):** foi escolhida por ter muitos eventos e serve só para
+  desenvolvimento e inspeção. Métricas reportadas usam as AOIs completas, nunca só a sub-AOI, porque a
+  escolha olhou os rótulos e infla a prevalência.
+
 ## 4. Métricas (`avaliacao.py`)
 
 - **Prevalência real:** positivos = eventos; negativos = todos os patch-passos limpos. Sem rebalancear.

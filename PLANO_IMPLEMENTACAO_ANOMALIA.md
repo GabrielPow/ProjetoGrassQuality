@@ -145,24 +145,33 @@ fixando o protocolo.
 
 ## Etapa 3 — Dados Sentinel e séries temporais
 
+> **Status (29/10):** código em `dados.py`, `03_cubo_sentinel.ipynb` e `04_inspecao_cubo.ipynb`, testado
+> localmente com download simulado. **Falta** rodar o `03` **localmente** (~1 h, limitado pelo Earth Engine)
+> e o `04` para inspecionar. Ver [Limitações de infraestrutura](#limitações-de-infraestrutura).
+> **Mudança de escopo:** o Tapajós inteiro daria ~330 GB só de S2. O cubo de pixels cobre uma sub-AOI de
+> 16 × 16 patches (35,8 km, cerca de 5–8 GB no disco local). Nas AOIs completas, a Etapa 4 baixa as mesmas
+> composições bloco a bloco e guarda só os embeddings. O download usa `ee.data.computePixels` direto para
+> numpy (sem GeoTIFF). O S1 é GRD em dB (o Earth Engine não tem RTC; o TerraMind tem estatísticas próprias
+> para S1GRD). A normalização é aplicada na leitura (`dados.normalize`), não no cubo.
+
 ### 3.1 Aquisição
-- [ ] **Sentinel-2 L2A** (bandas que o TerraMind espera para `S2L2A`; conferir a lista na
+- [x] **Sentinel-2 L2A** (bandas que o TerraMind espera para `S2L2A`; conferir a lista na
       documentação do TerraTorch) com máscara de nuvem Cloud Score+.
-- [ ] **Sentinel-1 GRD/RTC** (VV, VH). Na Amazônia a nuvem é o maior problema e o radar
+- [x] **Sentinel-1 GRD/RTC** (VV, VH). Na Amazônia a nuvem é o maior problema e o radar
       enxerga através dela. O TerraMind aceita S1 nativamente, então vale incluir desde o
       início, mesmo que o primeiro experimento use só S2.
-- [ ] **Composições por período:** começar com **trimestral** (4 passos/ano; ~28 passos
+- [x] **Composições por período:** começar com **trimestral** (4 passos/ano; ~28 passos
       em 2019–2025). Mediana dentro do período com nuvens mascaradas, e uma máscara de
       "dado faltante" quando não houver observação limpa (comum de dez. a abr.).
-- [ ] **Exportação:** Earth Engine → GeoTIFF (Drive/GCS), ou STAC do Microsoft Planetary
+- [x] **Exportação:** Earth Engine → GeoTIFF (Drive/GCS), ou STAC do Microsoft Planetary
       Computer. Estimar o volume antes de baixar.
 
 ### 3.2 Patches
-- [ ] Grade regular de patches **224 × 224 px a 10 m** (~2,24 km), o tamanho de entrada
+- [x] Grade regular de patches **224 × 224 px a 10 m** (~2,24 km), o tamanho de entrada
       do TerraMind.
-- [ ] Guardar como **cubo** `(patch, tempo, canal, H, W)` em Zarr, com coordenadas,
+- [x] Guardar como **cubo** `(patch, tempo, canal, H, W)` em Zarr, com coordenadas,
       bloco espacial e máscara de nuvem por passo.
-- [ ] Normalizar com as estatísticas que o TerraMind espera por modalidade (não com
+- [x] Normalizar com as estatísticas que o TerraMind espera por modalidade (não com
       estatísticas próprias).
 
 **Entregável:** cubo Zarr da AOI principal e um notebook de inspeção visual (alguns patches
@@ -328,6 +337,28 @@ experimento que justifica o modelo principal.
 | Volume de dados maior que o esperado | Estoura disco ou tempo de download | Começar por uma sub-AOI de ~50 × 50 km; estimar antes de exportar |
 | Pastagem domina os falsos positivos | Mapa pouco útil | Normalização local do score (6.4) |
 | Rótulos com erros ou atraso (PRODES é anual) | Métricas pessimistas | Combinar PRODES + DETER; métricas por evento; inspeção visual dos erros |
+| Pouco espaço no Google Drive (~2 GB livres) | Não cabe o cubo de pixels | Fluxo local; pixels como cache descartável (ver abaixo) |
+
+---
+
+## Limitações de infraestrutura
+
+Registradas em 29/10. Valem como limitação do trabalho no relatório.
+
+| Restrição | Efeito | Como o projeto responde |
+|---|---|---|
+| **Google Drive com ~2 GB livres** (plano gratuito, 15 GB) | Não cabe o cubo de pixels da sub-AOI (5–8 GB), muito menos as AOIs completas (~330 GB só de S2). O plano original guardava tudo no Drive | Fluxo **local** desde 29/10 (360 GB livres no disco). Os pixels viram um **cache descartável**, refeito do Earth Engine se perdido. O produto guardado são os **embeddings**: ~0,4 GB para as duas AOIs inteiras (média por patch, float16). No Colab, pixels só no disco temporário da VM. Nada grande vai para o Drive |
+| **Sem GPU local** (notebook i5-13420H, 8 núcleos, 16 GB de RAM) | Extração mais lenta que no Colab (T4: ~10 ms/patch) | TerraMind Small em CPU, medido em 29/10: **40 ms/patch (S2)** e **81 ms/patch (S2+S1)**. Sub-AOI (7.168 patch-trimestres): 5–10 min. AOIs completas (~545 mil): ~6 h (S2) a ~12 h (S2+S1), uma noite. O Transformer AE trabalha sobre vetores de 384 dimensões e treina em CPU |
+| **Download do Earth Engine** (cota e conexão) | Vira o gargalo: ~1 h para a sub-AOI; nas AOIs completas, ~68 mil requisições (estimativa de dezenas de horas, a confirmar com o teste de bloco do `03`) | Requisições por bloco de 8,96 km, 8 em paralelo e retomáveis. Nas AOIs completas, baixar e extrair em fluxo contínuo, sem guardar pixels. Se não couber no prazo, amostrar patches (todos com evento + amostra de normais) |
+| **Windows Smart App Control** | Em out/2026 bloqueou DLLs de pandas/scipy/sklearn; em 29/10 elas carregam | Métricas em numpy puro (`utils.py`), que funcionam mesmo com bloqueio. Dependências locais fixadas em `notebooks/gabriel/requirements-local.txt` |
+
+**Consequências para os resultados:**
+- A **grade de tokens** (14 × 14 por patch, ~160 m) só é guardada na sub-AOI (~1 GB). Nas AOIs completas
+  ocuparia ~82 GB, então lá os mapas de anomalia (Etapa 8) ficam na resolução do patch (2,24 km). Mapas
+  por token só na sub-AOI.
+- Refazer a extração (outra normalização, TerraMind Base no E6) exige baixar de novo do Earth Engine. Por
+  isso o E6 (Small vs. Base) fica limitado à sub-AOI.
+- A sub-AOI foi escolhida pelos rótulos e não serve para reportar métricas (ver `PROTOCOLO.md`).
 
 ---
 
@@ -335,8 +366,10 @@ experimento que justifica o modelo principal.
 
 1. ~~Onde rodar o pesado: Colab, Kaggle, WSL2 ou desativar o Smart App Control?~~
    **Decidido (15/10): Google Colab**, dados no Drive (`MyDrive/ProjetoGrassQuality`).
-2. Composição trimestral ou mensal? (Mensal dá mais resolução temporal, mas com muito mais
+   **Revisto (29/10): fluxo local em CPU** por falta de espaço no Drive. O Colab fica como opção, sem
+   guardar pixels no Drive. Ver [Limitações de infraestrutura](#limitações-de-infraestrutura).
+2. ~~Composição trimestral ou mensal?~~ **Decidido (29/10): trimestral.** (Mensal dá mais resolução temporal, mas com muito mais
    passos vazios.)
-3. S1 entra já no primeiro modelo ou só como ablação (E5)?
+3. ~~S1 entra já no primeiro modelo ou só como ablação (E5)?~~ **Decidido (29/10): S1 no cubo desde o início.**
 4. ~~Qual a AOI de generalização?~~ **Decidido (15/10): norte de Rondônia** `[-64, -10, -62, -8]`.
 5. Quem cuida de cada etapa (o README precisa da divisão de tarefas).

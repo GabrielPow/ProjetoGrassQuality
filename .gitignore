@@ -221,3 +221,6 @@ venv
 data/processed
 # rótulos gerados localmente (no Colab ficam no Drive)
 rotulos/
+*.zarr/
+embeddings/
+checkpoints/

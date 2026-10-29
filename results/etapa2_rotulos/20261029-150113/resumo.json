@@ -1,0 +1,347 @@
+{
+  "use_ee": true,
+  "fontes_raster": {
+    "tapajos": {
+      "hansen": {
+        "asset": "UMD/hansen/global_forest_change_2025_v1_13",
+        "last_year": 2025
+      },
+      "mapbiomas": {
+        "years_available": [
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      "mcd64": {
+        "last_image": "2026-08-01"
+      }
+    },
+    "norte_ro": {
+      "hansen": {
+        "asset": "UMD/hansen/global_forest_change_2025_v1_13",
+        "last_year": 2025
+      },
+      "mapbiomas": {
+        "years_available": [
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ]
+      },
+      "mcd64": {
+        "last_image": "2026-08-01"
+      }
+    }
+  },
+  "config": {
+    "EVENT_MIN_FRAC": 0.01,
+    "NORMAL_MAX_FRAC": 0.001,
+    "PATCH_M": 2240,
+    "BLOCK_PATCHES": 4,
+    "SPLIT_TARGET": [
+      0.7,
+      0.15,
+      0.15
+    ],
+    "TRAIN_END_YEAR": 2022
+  },
+  "tapajos": {
+    "n_patches": 9801,
+    "n_blocos": 676,
+    "splits": {
+      "train": 6859,
+      "test": 1476,
+      "val": 1466
+    },
+    "normais_treino": 2876,
+    "normais_estritos": 2489,
+    "prevalencia_anual": [
+      {
+        "split": "test",
+        "periodo": "teste",
+        "n": 4428,
+        "ambiguo": 0.27009936766034326,
+        "qualquer": 0.23351400180668475,
+        "desmatamento": 0.18337850045167117,
+        "mineracao": 0.04697380307136405,
+        "fogo": 0.08039747064137308,
+        "degradacao": 0.0047425474254742545,
+        "corte_seletivo": 0.0076784101174345075,
+        "agua": 0.011065943992773261
+      },
+      {
+        "split": "test",
+        "periodo": "treino",
+        "n": 5904,
+        "ambiguo": 0.23340108401084012,
+        "qualquer": 0.24542682926829268,
+        "desmatamento": 0.19342818428184283,
+        "mineracao": 0.07029132791327913,
+        "fogo": 0.07537262872628726,
+        "degradacao": 0.014227642276422764,
+        "corte_seletivo": 0.010670731707317074,
+        "agua": 0.011009485094850948
+      },
+      {
+        "split": "train",
+        "periodo": "teste",
+        "n": 20577,
+        "ambiguo": 0.2734606599601497,
+        "qualquer": 0.2872624775234485,
+        "desmatamento": 0.2363804247460757,
+        "mineracao": 0.05656801282985858,
+        "fogo": 0.10108373426641395,
+        "degradacao": 0.009039218544977402,
+        "corte_seletivo": 0.004568207221655246,
+        "agua": 0.01297565242746756
+      },
+      {
+        "split": "train",
+        "periodo": "treino",
+        "n": 27436,
+        "ambiguo": 0.2618457501093454,
+        "qualquer": 0.2648709724449628,
+        "desmatamento": 0.21078145502259804,
+        "mineracao": 0.07712494532730718,
+        "fogo": 0.08754920542353113,
+        "degradacao": 0.016146668610584634,
+        "corte_seletivo": 0.00648782621373378,
+        "agua": 0.010460708558098848
+      },
+      {
+        "split": "val",
+        "periodo": "teste",
+        "n": 4398,
+        "ambiguo": 0.2730786721236926,
+        "qualquer": 0.2949067758071851,
+        "desmatamento": 0.2464756707594361,
+        "mineracao": 0.047521600727603454,
+        "fogo": 0.11527967257844475,
+        "degradacao": 0.011596180081855388,
+        "corte_seletivo": 0.0025011368804001817,
+        "agua": 0.01227830832196453
+      },
+      {
+        "split": "val",
+        "periodo": "treino",
+        "n": 5864,
+        "ambiguo": 0.25051159618008184,
+        "qualquer": 0.2684174624829468,
+        "desmatamento": 0.21265347885402455,
+        "mineracao": 0.07708049113233288,
+        "fogo": 0.08816507503410641,
+        "degradacao": 0.018076398362892224,
+        "corte_seletivo": 0.0059686221009549794,
+        "agua": 0.011937244201909959
+      }
+    ],
+    "prevalencia_trimestral": [
+      {
+        "split": "test",
+        "periodo": "teste",
+        "n": 17712,
+        "ambiguo": 0.006718608852755195,
+        "qualquer": 0.036528906955736226,
+        "desmatamento": 0.0024841915085817524,
+        "mineracao": 0.004516711833785004,
+        "fogo": 0.02693089430894309,
+        "degradacao": 0.0012420957542908762,
+        "corte_seletivo": 0.0019196025293586269,
+        "agua": 0.0
+      },
+      {
+        "split": "test",
+        "periodo": "treino",
+        "n": 23616,
+        "ambiguo": 0.011263550135501356,
+        "qualquer": 0.044334349593495935,
+        "desmatamento": 0.018546747967479675,
+        "mineracao": 0.006690379403794038,
+        "fogo": 0.020579268292682928,
+        "degradacao": 0.0039380081300813006,
+        "corte_seletivo": 0.0029217479674796746,
+        "agua": 0.0
+      },
+      {
+        "split": "train",
+        "periodo": "teste",
+        "n": 82308,
+        "ambiguo": 0.008954172133935947,
+        "qualquer": 0.045754969140302276,
+        "desmatamento": 0.007289692374981776,
+        "mineracao": 0.004580356708946883,
+        "fogo": 0.03369052825970744,
+        "degradacao": 0.0023084025854108957,
+        "corte_seletivo": 0.0012149487291636292,
+        "agua": 0.0
+      },
+      {
+        "split": "train",
+        "periodo": "treino",
+        "n": 109744,
+        "ambiguo": 0.011317247412159207,
+        "qualquer": 0.04862224814112844,
+        "desmatamento": 0.019654833066044614,
+        "mineracao": 0.0072532439131068665,
+        "fogo": 0.023682388103222044,
+        "degradacao": 0.004492272926082519,
+        "corte_seletivo": 0.0017859746318705351,
+        "agua": 0.0
+      },
+      {
+        "split": "val",
+        "periodo": "teste",
+        "n": 17592,
+        "ambiguo": 0.00812869486130059,
+        "qualquer": 0.049965893587994546,
+        "desmatamento": 0.005115961800818554,
+        "mineracao": 0.004604365620736698,
+        "fogo": 0.03922237380627558,
+        "degradacao": 0.0030127330604820374,
+        "corte_seletivo": 0.0007958162801273306,
+        "agua": 0.0
+      },
+      {
+        "split": "val",
+        "periodo": "treino",
+        "n": 23456,
+        "ambiguo": 0.01031718963165075,
+        "qualquer": 0.050051159618008184,
+        "desmatamento": 0.019824351978171895,
+        "mineracao": 0.008569236016371077,
+        "fogo": 0.02297919508867667,
+        "degradacao": 0.004902796725784447,
+        "corte_seletivo": 0.00166268758526603,
+        "agua": 0.0
+      }
+    ],
+    "concordancia_desmatamento": {
+      "deter": {
+        "deter": 1.0,
+        "hansen": 0.228,
+        "mapbiomas": 0.363,
+        "prodes": 0.372
+      },
+      "hansen": {
+        "deter": 0.855,
+        "hansen": 1.0,
+        "mapbiomas": 0.663,
+        "prodes": 0.73
+      },
+      "mapbiomas": {
+        "deter": 0.832,
+        "hansen": 0.405,
+        "mapbiomas": 1.0,
+        "prodes": 0.613
+      },
+      "prodes": {
+        "deter": 0.729,
+        "hansen": 0.381,
+        "mapbiomas": 0.524,
+        "prodes": 1.0
+      }
+    }
+  },
+  "norte_ro": {
+    "n_patches": 9644,
+    "n_blocos": 650,
+    "splits": {
+      "test_gen": 9644
+    },
+    "normais_treino": 2037,
+    "normais_estritos": 1819,
+    "prevalencia_anual": [
+      {
+        "split": "test_gen",
+        "periodo": "teste",
+        "n": 28932,
+        "ambiguo": 0.40249550670537815,
+        "qualquer": 0.2864993778515139,
+        "desmatamento": 0.22086271256739942,
+        "mineracao": 0.005011751693626434,
+        "fogo": 0.0623876676344532,
+        "degradacao": 0.012754043965159684,
+        "corte_seletivo": 0.00708557998064427,
+        "agua": 0.04991013410756256
+      },
+      {
+        "split": "test_gen",
+        "periodo": "treino",
+        "n": 38576,
+        "ambiguo": 0.3139776026545002,
+        "qualquer": 0.3564392368311904,
+        "desmatamento": 0.31371837411862297,
+        "mineracao": 0.003940273745333886,
+        "fogo": 0.08308274574865201,
+        "degradacao": 0.01669431771049357,
+        "corte_seletivo": 0.006117793446702613,
+        "agua": 0.023952716715055992
+      }
+    ],
+    "prevalencia_trimestral": [
+      {
+        "split": "test_gen",
+        "periodo": "teste",
+        "n": 115728,
+        "ambiguo": 0.008053366514585925,
+        "qualquer": 0.034045347711876124,
+        "desmatamento": 0.012875017281902391,
+        "mineracao": 6.048665837135352e-05,
+        "fogo": 0.018871837411862297,
+        "degradacao": 0.003456380478363058,
+        "corte_seletivo": 0.0020392644822342042,
+        "agua": 0.0
+      },
+      {
+        "split": "test_gen",
+        "periodo": "treino",
+        "n": 154304,
+        "ambiguo": 0.015884228535877228,
+        "qualquer": 0.062370385732061384,
+        "desmatamento": 0.04536499377851514,
+        "mineracao": 0.00011017212774782248,
+        "fogo": 0.021658544172542513,
+        "degradacao": 0.00449761509746993,
+        "corte_seletivo": 0.0017368311903774368,
+        "agua": 0.0
+      }
+    ],
+    "concordancia_desmatamento": {
+      "deter": {
+        "deter": 1.0,
+        "hansen": 0.438,
+        "mapbiomas": 0.442,
+        "prodes": 0.601
+      },
+      "hansen": {
+        "deter": 0.858,
+        "hansen": 1.0,
+        "mapbiomas": 0.678,
+        "prodes": 0.74
+      },
+      "mapbiomas": {
+        "deter": 0.877,
+        "hansen": 0.687,
+        "mapbiomas": 1.0,
+        "prodes": 0.815
+      },
+      "prodes": {
+        "deter": 0.762,
+        "hansen": 0.479,
+        "mapbiomas": 0.521,
+        "prodes": 1.0
+      }
+    }
+  }
+}
