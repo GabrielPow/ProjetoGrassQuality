@@ -55,8 +55,12 @@ SPLIT_TARGET = (0.70, 0.15, 0.15)       # train / val / test, em número de patc
 # ---- rótulos (Etapa 2) ----
 EVENT_MIN_FRAC = 0.01                   # >= 1% do patch (~5 ha) conta como evento na avaliação
 # 0 < fração < EVENT_MIN_FRAC: patch-passo "ambíguo", fora da avaliação e fora dos normais
-NORMAL_MAX_FRAC = 0.001                 # normal de treino: em cada fonte, soma 2019–2025 < 0,1% (~0,5 ha);
-                                        # tolera o ruído de pixel isolado (30 m) de MapBiomas/Hansen
+NORMAL_MAX_FRAC = 0.001                 # regra ANTIGA (só informativa): em cada fonte, soma 2019–2025 < 0,1%
+# Regra em vigor (29/10): normal por JANELA. (patch, ano T) é normal se T-1, T e T+1 não têm evento.
+# Motivo: a regra por patch deixava 1 patch de pastagem no treino do Tapajós (ver PROTOCOLO.md).
+NORMAL_WINDOW_YEARS = 2                 # a janela de histórico do modelo cabe em T-1..T (até 8 trimestres)
+NORMAL_BUFFER_YEARS = 1                 # T+1 também limpo: evita treinar com a véspera de um evento
+K_HIST = 4                              # baselines: histórico = média dos 4 trimestres anteriores
 EVENT_TYPES = ['desmatamento', 'mineracao', 'fogo', 'degradacao', 'corte_seletivo', 'agua']
 DETER_CLASSES = {
     'DESMATAMENTO_CR': 'desmatamento', 'DESMATAMENTO_VEG': 'desmatamento',
@@ -75,6 +79,13 @@ TERRAMIND_SMALL = 'terratorch_terramind_v1_small'
 TERRAMIND_S2_CHANNELS = 12      # S2L2A: B1–B12 sem B10
 TERRAMIND_EMBED_DIM = 384
 TERRAMIND_TOKEN_GRID = 14       # 224 px / 16 px -> 14 x 14 = 196 tokens
+# Unidade de análise (decidida em 29/10 após o gate): CÉLULA = 2 x 2 tokens = 320 m; 7 x 7 = 49 células por patch.
+# Os modelos pontuam cada célula; o score do patch é o MÁXIMO das células (rótulos e protocolo ficam no patch).
+# Motivo: a média do patch de 2,24 km dilui eventos pequenos (gate: 0,57 no patch vs 0,84 no token).
+CELL_POOL = 2
+CELL_GRID = TERRAMIND_TOKEN_GRID // CELL_POOL    # 7
+N_CELLS = CELL_GRID ** 2                          # 49
+CELL_M = PATCH_M // CELL_GRID                     # 320 m
 # O backbone ViT NÃO normaliza a entrada: padronizar com as estatísticas de pré-treino
 # (terratorch v1.2.13, terramind_register.py, v1_pretraining_mean/std). S2 em DN L2A (refl. x 10000), S1 em dB.
 TERRAMIND_STATS = {

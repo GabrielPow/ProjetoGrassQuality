@@ -30,15 +30,24 @@ alertas DETER entre as candidatas (11,4 mil de desmatamento desde 2019). Ela qua
 - **Fração do patch:** cada fonte é somada por patch-período (limite 1), e cada tipo fica com o máximo entre as fontes.
 - **Evento:** fração ≥ 1% do patch (~5 ha). **Ambíguo:** 0 < fração < 1%; fica fora da avaliação. **Limpo:** nenhuma fonte toca o patch no período.
 - **Rótulo anual** (patch × ano): todas as fontes. **Rótulo trimestral** (patch × trimestre): só fontes com data sub-anual (DETER, MCD64A1).
-- **Normal de treino:** em **cada** fonte, a fração somada em 2019–2025 fica abaixo de 0,1% do patch (~0,5 ha).
-  A tolerância absorve pixels isolados de ruído de MapBiomas/Hansen. A coluna `normal_estrito` (zero absoluto) fica salva para comparação.
-  Normais incluem toda cobertura estável (floresta, pastagem, agricultura, água).
+- **Normal de treino (regra em vigor desde 29/10): por janela.** Uma amostra (patch, trimestre t do
+  ano T) é normal se os anos T-1, T e T+1 não têm evento (≥ 1%; ambíguo permitido) em nenhuma fonte
+  (`rotulos.normal_windows`). O histórico de até 8 trimestres cabe em T-1..T, e o ano T+1 limpo evita
+  treinar com a véspera de um evento.
+  - *Regra anterior (15/10), por patch:* em cada fonte, a soma 2019–2025 ficava abaixo de 0,1% do patch.
+    **Motivo da mudança** (registrado antes de qualquer resultado de modelo): com as fontes raster, ela
+    deixava 2.008 patches de floresta e **1 de pastagem** no treino do Tapajós. Patches de pastagem de 2,24 km
+    quase sempre têm remanescentes de floresta sendo abertos: a mediana é 8% do patch em 2019–2025 no
+    Hansen, no MapBiomas e no DETER. Ou seja, "pastagem estável" quase não existe nessa escala. A regra
+    por janela dá 11.360 janelas de floresta e 544 de pastagem (278 patches) no treino do Tapajós.
+    As colunas `normal_treino` / `normal_estrito` continuam em `grade.csv` só para referência.
 
 ## 3. Divisão dos dados
 
 - **Espacial:** blocos de 4 × 4 patches (8,96 km) inteiros em train/val/test (70/15/15, guloso por número de patches, semente 42). Nenhum bloco aparece em duas partições (verificado por `assert`).
 - **Temporal:** treino só com sequências que terminam até 2022Q4 (`periodo = 'treino'`). O teste usa eventos de 2023–2025 (`periodo = 'teste'`).
-- **Treino do modelo:** patches `normal_treino` de `train`, até 2022. **Ajuste de hiperparâmetros e limiar:** patches `val` (limpos), nunca rótulos de anomalia.
+- **Treino do modelo:** amostras normais (por janela) de `train`, com T ≤ 2022. **Ajuste de hiperparâmetros
+  e limiar:** amostras normais e patch-passos limpos de `val`, nunca rótulos de anomalia.
 - **Teste:** blocos `test` do Tapajós em 2023–2025; e `norte_ro` inteiro (`test_gen`) em 2023–2025.
 
 - **Instantâneo dos rótulos:** o INPE edita PRODES/DETER depois de publicar. Entre 15/10 e 29/10, o PRODES
@@ -57,7 +66,19 @@ alertas DETER entre as candidatas (11,4 mil de desmatamento desde 2019). Ela qua
 - **Por evento:** fração dos polígonos PRODES/DETER detectados (algum patch tocado passa do limiar entre o trimestre do evento e 2 trimestres depois), por tipo e tamanho (0–5, 5–25, 25–100, >100 ha).
 - **Antecedência vs. DETER:** primeiro trimestre (−4 a +4) em que um patch com ≥ 1% do alerta passa do limiar. Antes do alerta só contam trimestres limpos do patch. Sempre reportar junto com `chance_rate`: um aviso "antecipado" ao acaso é comum quando um alerta toca vários patches.
 
-## 5. Números da primeira execução (só PRODES + DETER; as fontes raster rodam no Colab)
+## 5. Números com todas as fontes (execução local de 29/10, `results/etapa2_rotulos/20261029-150113`)
+
+| | Tapajós | Norte RO |
+|---|---|---|
+| Patch-anos com evento, teste 2023–2025 | 23–29% (+27% ambíguos) | 29% (+40% ambíguos) |
+| Patch-trimestres com evento (DETER + MCD64) | 4–5% | 3–6% |
+| Normais pela regra antiga (por patch) | 2.876 (só 1 de pastagem no train) | 2.037 |
+
+Com Hansen e MapBiomas, a prevalência anual por patch fica alta: um patch de 2,24 km com ≥ 1% de perda
+em algum ano é comum na fronteira. Por isso a avaliação **trimestral** (data do DETER) é a mais
+exigente e a mais próxima do uso prático. A anual serve para comparar com o AlphaEarth.
+
+### Primeira execução (15/10, só PRODES + DETER)
 
 | | Tapajós | Norte RO |
 |---|---|---|

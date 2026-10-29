@@ -1,0 +1,49 @@
+{
+  "fonte": "tapajos_sub",
+  "eval_split": "train",
+  "n_amostras": 6143,
+  "treino_normais": 831,
+  "val_normais": 168,
+  "svdd_epocas": {
+    "svdd_s2s1": 300,
+    "svdd_s2": 300
+  },
+  "auroc_todos": {
+    "anual": {
+      "AlphaEarth | cosseno vs hist\u00f3rico": 0.8642,
+      "AlphaEarth | kNN est\u00e1tico (sem tempo)": 0.9606,
+      "Espectral | IForest (bandas + delta)": 0.8388,
+      "Espectral | queda de NDVI": 0.545,
+      "TerraMind S2 | Deep SVDD no delta": 0.7437,
+      "TerraMind S2 | IForest no delta": 0.3639,
+      "TerraMind S2 | cosseno vs hist\u00f3rico": 0.3818,
+      "TerraMind S2 | cosseno vs mesmo trimestre (t-4, t-8)": 0.5279,
+      "TerraMind S2 | kNN est\u00e1tico (sem tempo)": 0.9051,
+      "TerraMind S2 | kNN no delta": 0.6137,
+      "TerraMind S2S1 | Deep SVDD no delta": 0.8314,
+      "TerraMind S2S1 | IForest no delta": 0.5396,
+      "TerraMind S2S1 | cosseno vs hist\u00f3rico": 0.4618,
+      "TerraMind S2S1 | cosseno vs mesmo trimestre (t-4, t-8)": 0.6254,
+      "TerraMind S2S1 | kNN est\u00e1tico (sem tempo)": 0.9374,
+      "TerraMind S2S1 | kNN no delta": 0.7551
+    },
+    "trimestral": {
+      "AlphaEarth | cosseno vs hist\u00f3rico": NaN,
+      "AlphaEarth | kNN est\u00e1tico (sem tempo)": NaN,
+      "Espectral | IForest (bandas + delta)": 0.6472,
+      "Espectral | queda de NDVI": 0.6439,
+      "TerraMind S2 | Deep SVDD no delta": 0.6896,
+      "TerraMind S2 | IForest no delta": 0.5359,
+      "TerraMind S2 | cosseno vs hist\u00f3rico": 0.4432,
+      "TerraMind S2 | cosseno vs mesmo trimestre (t-4, t-8)": 0.5715,
+      "TerraMind S2 | kNN est\u00e1tico (sem tempo)": 0.681,
+      "TerraMind S2 | kNN no delta": 0.6436,
+      "TerraMind S2S1 | Deep SVDD no delta": 0.7409,
+      "TerraMind S2S1 | IForest no delta": 0.6546,
+      "TerraMind S2S1 | cosseno vs hist\u00f3rico": 0.5603,
+      "TerraMind S2S1 | cosseno vs mesmo trimestre (t-4, t-8)": 0.6352,
+      "TerraMind S2S1 | kNN est\u00e1tico (sem tempo)": 0.689,
+      "TerraMind S2S1 | kNN no delta": 0.6966
+    }
+  }
+}

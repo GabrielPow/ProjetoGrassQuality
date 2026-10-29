@@ -20,6 +20,19 @@ B = config.BLOCK_PATCHES
 P = config.PATCH_SIZE
 BLOCK_PX = B * P                      # 896
 S1_NODATA = -9999.0
+EE_DEADLINE_MS = 180_000              # sem prazo, uma requisição travada parou um lote por 29 min (29/10)
+_deadline_lock = __import__('threading').Lock()
+_deadline_set = False
+
+
+def _ensure_deadline():
+    """Prazo por requisição do Earth Engine, definido uma vez (setDeadline reinstala o cliente da API)."""
+    global _deadline_set
+    with _deadline_lock:
+        if not _deadline_set:
+            import ee
+            ee.data.setDeadline(EE_DEADLINE_MS)   # requisição travada vira erro e cai no retry de fetch_block
+            _deadline_set = True
 
 
 # ---------------- composições (Earth Engine) ----------------
@@ -59,14 +72,15 @@ def s1_composite(start, end, region):
 COMPOSITES = {'s2': s2_composite, 's1': s1_composite}
 
 
-def fetch_block(sensor, x0, y0, epsg, start, end, retries=5):
-    """Baixa um bloco 896 x 896 px com canto inferior esquerdo (x0, y0) em UTM.
+def fetch_block(sensor, x0, y0, epsg, start, end, retries=5, size_px=BLOCK_PX):
+    """Baixa uma janela size_px x size_px (padrão: um bloco, 896 px) com canto inferior esquerdo (x0, y0) em UTM.
     Retorna (dados (C, H, W), n_obs (H, W)); S2 uint16, S1 float32 com NaN onde não há observação."""
     import ee
-    size_m = BLOCK_PX * config.RESOLUTION_M
+    _ensure_deadline()
+    size_m = size_px * config.RESOLUTION_M
     img = COMPOSITES[sensor](start, end, _region(x0, y0, epsg, size_m))
     req = {'expression': img, 'fileFormat': 'NUMPY_NDARRAY',
-           'grid': {'dimensions': {'width': BLOCK_PX, 'height': BLOCK_PX},
+           'grid': {'dimensions': {'width': size_px, 'height': size_px},
                     'affineTransform': {'scaleX': config.RESOLUTION_M, 'shearX': 0, 'translateX': x0,
                                         'shearY': 0, 'scaleY': -config.RESOLUTION_M, 'translateY': y0 + size_m},
                     'crsCode': f'EPSG:{epsg}'}}

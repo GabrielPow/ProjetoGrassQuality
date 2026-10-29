@@ -1,0 +1,293 @@
+{
+  "gate": [
+    {
+      "task": "all anomalies vs all normals",
+      "score": "TerraMind S2 cosine change (T)",
+      "AUROC": 0.5599209170072863,
+      "AUROC_lo": 0.5114839696039699,
+      "AUROC_hi": 0.6138199730993917,
+      "TPR_at_5FPR": 0.19705882352941176
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "TerraMind S2 cosine change (T)",
+      "AUROC": 0.8140562248995984,
+      "AUROC_lo": 0.7500315140057712,
+      "AUROC_hi": 0.8651133096315246,
+      "TPR_at_5FPR": 0.44
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "TerraMind S2 cosine change (T)",
+      "AUROC": 0.6853939393939394,
+      "AUROC_lo": 0.614958287532739,
+      "AUROC_hi": 0.7594204761211313,
+      "TPR_at_5FPR": 0.37333333333333335
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "TerraMind S2 cosine change (T)",
+      "AUROC": 0.4099220861822229,
+      "AUROC_lo": 0.3445472531023369,
+      "AUROC_hi": 0.4853847871830292,
+      "TPR_at_5FPR": 0.02631578947368421
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "TerraMind S2 cosine change (T+1)",
+      "AUROC": 0.5333925715301227,
+      "AUROC_lo": 0.4783131630447039,
+      "AUROC_hi": 0.5958315349222314,
+      "TPR_at_5FPR": 0.14705882352941177
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "TerraMind S2 cosine change (T+1)",
+      "AUROC": 0.8317670682730923,
+      "AUROC_lo": 0.782834541807139,
+      "AUROC_hi": 0.8805375256323997,
+      "TPR_at_5FPR": 0.49333333333333335
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "TerraMind S2 cosine change (T+1)",
+      "AUROC": 0.6792727272727273,
+      "AUROC_lo": 0.6136817413841141,
+      "AUROC_hi": 0.7452896162080381,
+      "TPR_at_5FPR": 0.26666666666666666
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "TerraMind S2 cosine change (T+1)",
+      "AUROC": 0.35784703450469074,
+      "AUROC_lo": 0.29217029337896694,
+      "AUROC_hi": 0.4362210825197029,
+      "TPR_at_5FPR": 0.021052631578947368
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "TerraMind S2S1 cosine change (T)",
+      "AUROC": 0.5665185711746934,
+      "AUROC_lo": 0.5138787414936931,
+      "AUROC_hi": 0.6239022340474956,
+      "TPR_at_5FPR": 0.19117647058823528
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "TerraMind S2S1 cosine change (T)",
+      "AUROC": 0.893855421686747,
+      "AUROC_lo": 0.8477375727333375,
+      "AUROC_hi": 0.9264085113980393,
+      "TPR_at_5FPR": 0.58
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "TerraMind S2S1 cosine change (T)",
+      "AUROC": 0.6707070707070707,
+      "AUROC_lo": 0.5965824952558906,
+      "AUROC_hi": 0.7454565913478862,
+      "TPR_at_5FPR": 0.3933333333333333
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "TerraMind S2S1 cosine change (T)",
+      "AUROC": 0.3959134997614883,
+      "AUROC_lo": 0.33054143492493776,
+      "AUROC_hi": 0.4790230276737489,
+      "TPR_at_5FPR": 0.02631578947368421
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "TerraMind S2S1 cosine change (T+1)",
+      "AUROC": 0.5543273502754577,
+      "AUROC_lo": 0.49544929227536466,
+      "AUROC_hi": 0.6187400870442952,
+      "TPR_at_5FPR": 0.17941176470588235
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "TerraMind S2S1 cosine change (T+1)",
+      "AUROC": 0.9096787148594377,
+      "AUROC_lo": 0.8717797273967283,
+      "AUROC_hi": 0.9417927700311653,
+      "TPR_at_5FPR": 0.6266666666666667
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "TerraMind S2S1 cosine change (T+1)",
+      "AUROC": 0.6941010101010101,
+      "AUROC_lo": 0.6248273200654184,
+      "AUROC_hi": 0.7669062026148723,
+      "TPR_at_5FPR": 0.3333333333333333
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "TerraMind S2S1 cosine change (T+1)",
+      "AUROC": 0.35862617268246144,
+      "AUROC_lo": 0.28503473801462237,
+      "AUROC_hi": 0.4399625733320849,
+      "TPR_at_5FPR": 0.015789473684210527
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "AE cosine change (T)",
+      "AUROC": 0.8896481251110716,
+      "AUROC_lo": 0.8619561401985851,
+      "AUROC_hi": 0.9176714606928376,
+      "TPR_at_5FPR": 0.6764705882352942
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "AE cosine change (T+1)",
+      "AUROC": 0.8887062377821219,
+      "AUROC_lo": 0.8669669079364324,
+      "AUROC_hi": 0.9151083895352368,
+      "TPR_at_5FPR": 0.6676470588235294
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "AE kNN static, no time (T)",
+      "AUROC": 0.9255020437177892,
+      "AUROC_lo": 0.9000574914386864,
+      "AUROC_hi": 0.950268058633034,
+      "TPR_at_5FPR": 0.6617647058823529
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "NDVI drop (T)",
+      "AUROC": 0.8187755464723654,
+      "AUROC_lo": 0.7844245099274945,
+      "AUROC_hi": 0.8512063078703704,
+      "TPR_at_5FPR": 0.488235294117647
+    },
+    {
+      "task": "all anomalies vs all normals",
+      "score": "S2 band distance (T)",
+      "AUROC": 0.7857384041229785,
+      "AUROC_lo": 0.7331411350923434,
+      "AUROC_hi": 0.8309609568169122,
+      "TPR_at_5FPR": 0.4088235294117647
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "AE cosine change (T)",
+      "AUROC": 0.9852208835341364,
+      "AUROC_lo": 0.9691704993829768,
+      "AUROC_hi": 0.9942355856332734,
+      "TPR_at_5FPR": 0.94
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "AE cosine change (T+1)",
+      "AUROC": 0.9832128514056224,
+      "AUROC_lo": 0.9689266594077866,
+      "AUROC_hi": 0.9916289690785328,
+      "TPR_at_5FPR": 0.8933333333333333
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "AE kNN static, no time (T)",
+      "AUROC": 0.9769879518072287,
+      "AUROC_lo": 0.9576634609936852,
+      "AUROC_hi": 0.9913471445128134,
+      "TPR_at_5FPR": 0.9066666666666666
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "NDVI drop (T)",
+      "AUROC": 0.8762650602409638,
+      "AUROC_lo": 0.8334468843002378,
+      "AUROC_hi": 0.9176043630995864,
+      "TPR_at_5FPR": 0.72
+    },
+    {
+      "task": "deforest vs stable forest",
+      "score": "S2 band distance (T)",
+      "AUROC": 0.9,
+      "AUROC_lo": 0.8645024879870647,
+      "AUROC_hi": 0.9282931679264256,
+      "TPR_at_5FPR": 0.6733333333333333
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "AE cosine change (T)",
+      "AUROC": 0.8538181818181818,
+      "AUROC_lo": 0.7995106544662932,
+      "AUROC_hi": 0.8966780234607357,
+      "TPR_at_5FPR": 0.66
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "AE cosine change (T+1)",
+      "AUROC": 0.8631111111111112,
+      "AUROC_lo": 0.8233642523541839,
+      "AUROC_hi": 0.9025032513465284,
+      "TPR_at_5FPR": 0.6266666666666667
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "AE kNN static, no time (T)",
+      "AUROC": 0.816969696969697,
+      "AUROC_lo": 0.751313630204696,
+      "AUROC_hi": 0.8734335030761556,
+      "TPR_at_5FPR": 0.3866666666666666
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "NDVI drop (T)",
+      "AUROC": 0.7486868686868687,
+      "AUROC_lo": 0.6902739273739437,
+      "AUROC_hi": 0.8043718161788502,
+      "TPR_at_5FPR": 0.24
+    },
+    {
+      "task": "deforest vs stable pasture",
+      "score": "S2 band distance (T)",
+      "AUROC": 0.5808888888888889,
+      "AUROC_lo": 0.5063337341225799,
+      "AUROC_hi": 0.6496978672594128,
+      "TPR_at_5FPR": 0.16
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "AE cosine change (T)",
+      "AUROC": 0.8659087295277469,
+      "AUROC_lo": 0.8232221834285425,
+      "AUROC_hi": 0.9071823078027343,
+      "TPR_at_5FPR": 0.6736842105263158
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "AE cosine change (T+1)",
+      "AUROC": 0.861361106694228,
+      "AUROC_lo": 0.8215718166124607,
+      "AUROC_hi": 0.8996065855876539,
+      "TPR_at_5FPR": 0.631578947368421
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "AE kNN static, no time (T)",
+      "AUROC": 0.9478295436476388,
+      "AUROC_lo": 0.9213587131044304,
+      "AUROC_hi": 0.9699577790806524,
+      "TPR_at_5FPR": 0.8105263157894737
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "NDVI drop (T)",
+      "AUROC": 0.8235967562410558,
+      "AUROC_lo": 0.7756728877830099,
+      "AUROC_hi": 0.8712697253669621,
+      "TPR_at_5FPR": 0.6210526315789474
+    },
+    {
+      "task": "mining vs all normals",
+      "score": "S2 band distance (T)",
+      "AUROC": 0.8211162346955001,
+      "AUROC_lo": 0.771848727818257,
+      "AUROC_hi": 0.8677648572428776,
+      "TPR_at_5FPR": 0.5631578947368421
+    }
+  ],
+  "gate_melhor_auroc": 0.5665185711746934
+}

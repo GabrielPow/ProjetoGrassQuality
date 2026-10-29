@@ -303,6 +303,20 @@ def quarterly_labels(eventos, patch_ids):
     return out
 
 
+def normal_windows(anual, window=config.NORMAL_WINDOW_YEARS, buffer=config.NORMAL_BUFFER_YEARS):
+    """Normal de treino por janela (regra em vigor desde 29/10): o par (patch, ano T) é normal se nenhum
+    ano de T-window+1 até T+buffer tem evento (>= EVENT_MIN_FRAC; 'ambiguo' é permitido). Anos fora de
+    2019–2025 contam como desconhecidos, ou seja, não normais.
+    Retorna DataFrame patch_id, year, normal_janela."""
+    w = anual.pivot(index='patch_id', columns='year', values='estado') != 'evento'
+    rows = []
+    for T in config.YEARS:
+        yrs = list(range(T - window + 1, T + buffer + 1))
+        ok = w[yrs].all(axis=1) if all(y in w.columns for y in yrs) else pd.Series(False, index=w.index)
+        rows.append(pd.DataFrame({'patch_id': w.index, 'year': T, 'normal_janela': ok.values}))
+    return pd.concat(rows, ignore_index=True)
+
+
 def normal_flags(eventos, patch_ids, tol=config.NORMAL_MAX_FRAC):
     """Normal de treino: em cada fonte, a fração somada em 2019–2025 fica abaixo de `tol`."""
     tot = eventos.groupby(['patch_id', 'source'])['frac'].sum().unstack('source')
