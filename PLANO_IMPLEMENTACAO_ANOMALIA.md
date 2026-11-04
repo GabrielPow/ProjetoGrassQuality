@@ -262,6 +262,30 @@ Todos treinados **só com sequências normais** e avaliados no mesmo protocolo.
 
 ## Etapa 6 — Modelo 2: Temporal Transformer Autoencoder
 
+> **Status (29/10):** código em `modelo.py` e `07_transformer_ae.ipynb`. A entrada é a célula de 320 m (não o
+> patch): sequência de 9 trimestres de embeddings TerraMind S2 + S1, com codificação de ano e trimestre e máscara
+> de atenção. Arquitetura: d = 128, 4 camadas, 4 cabeças, gargalo 64 (0,93 M parâmetros). O plano previa d = 256;
+> a escolha final sai da perda na validação de normais.
+> As duas formulações de 6.2 usam a mesma arquitetura, e a principal é escolhida pela perda nos normais de
+> validação: **masked** (0,410) venceu **forecast** (0,422).
+>
+> **Diagnóstico na sub-AOI** (blocos de treino em 2023–2025, holdout só temporal, **não reportar**;
+> `results/etapa6_transformer_ae_tapajos_sub/20261029-191841`):
+> - Trimestral (todas): AE 0,684 (IC 0,61–0,76) × melhor baseline kNN no delta 0,733 (IC 0,63–0,82). Os ICs se
+>   sobrepõem. Por tipo, o AE fica no meio do grupo (desmatamento 0,82–0,83; mineração 0,66; fogo 0,68).
+> - Anual: AE 0,78 × kNN estático 0,97. O alerta do first pass continua.
+> - Normalização local **não testável na sub-AOI**: todos os normais de validação são floresta (116 patch-passos,
+>   0 de pastagem), então todas as coberturas caem na mesma referência e o resultado é idêntico ao bruto.
+> - Treino pequeno: 27 mil sequências de 544 patch-passos normais (520 de floresta, 24 de pastagem).
+>
+> **Leitura:** na sub-AOI, o modelo temporal ainda não supera os baselines simples. O teste real (E1/E2) precisa
+> das AOIs completas: ~200 mil sequências de treino, normais de pastagem na validação para a normalização local,
+> e teste espacial de verdade. Se o resultado se mantiver, é um achado publicável se bem documentado (ver Riscos).
+>
+> **Tempo em CPU (medido):** treino ~1,5 min por 100 mil sequências por época, com variação (a formulação masked
+> desacelerou para ~1 min/época na sub-AOI). Pontuação: ~150 s por milhão de células. Tapajós completo: ~3–3,5 h
+> no total (duas formulações + pontuação das duas AOIs), depois dos embeddings de toda a AOI.
+
 ### 6.1 Arquitetura (ponto de partida)
 - Entrada: sequência `Z(t−k), …, Z(t)` com k ≈ 8 (dois anos de trimestres).
 - Projeção linear para d = 256, mais **codificação temporal** (ano e época do ano, em
