@@ -219,5 +219,7 @@ __marimo__/
 venv
 
 data/processed
+data/raw/
+
 # rótulos gerados localmente (no Colab ficam no Drive)
 rotulos/

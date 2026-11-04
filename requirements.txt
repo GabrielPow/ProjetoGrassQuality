@@ -8,3 +8,4 @@ streamlit-folium
 scikit-learn
 matplotlib
 Pillow
+terratorch
