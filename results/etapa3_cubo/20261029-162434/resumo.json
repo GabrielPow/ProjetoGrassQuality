@@ -1,0 +1,83 @@
+{
+  "cubo": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\data\\cubo_tapajos_sub.zarr",
+  "gb_em_disco": 4.88,
+  "volume_bruto_gb": {
+    "s2": 8.631877632,
+    "s1": 1.438646272,
+    "nobs": 0.719323136
+  },
+  "n_patches": 256,
+  "splits": {
+    "train": 192,
+    "val": 48,
+    "test": 16
+  },
+  "origem": [
+    244,
+    4112
+  ],
+  "teste_bloco": {
+    "s2_2022Q1": {
+      "segundos": 53.0,
+      "frac_limpa": 0.997,
+      "obs_mediana": 4.0,
+      "mediana_por_banda": [
+        443.0,
+        414.0,
+        544.0,
+        339.0,
+        789.0,
+        2365.0,
+        3034.0,
+        2989.0,
+        3346.0,
+        3384.0,
+        1595.0,
+        706.0
+      ]
+    },
+    "s1_2022Q1": {
+      "segundos": 4.5,
+      "frac_limpa": 1.0,
+      "obs_mediana": 7.0,
+      "mediana_por_banda": [
+        -7.599999904632568,
+        -14.0
+      ]
+    },
+    "s2_2022Q3": {
+      "segundos": 16.8,
+      "frac_limpa": 1.0,
+      "obs_mediana": 13.0,
+      "mediana_por_banda": [
+        294.0,
+        307.0,
+        461.0,
+        260.0,
+        744.0,
+        2275.0,
+        2908.0,
+        2985.0,
+        3227.0,
+        3228.0,
+        1411.0,
+        584.0
+      ]
+    },
+    "s1_2022Q3": {
+      "segundos": 4.6,
+      "frac_limpa": 1.0,
+      "obs_mediana": 6.0,
+      "mediana_por_banda": [
+        -8.199999809265137,
+        -14.5
+      ]
+    }
+  },
+  "tarefas_completas": 896,
+  "disponibilidade_media": {
+    "S2": 0.999,
+    "S1": 1.0
+  },
+  "trimestres_s2_abaixo_de_50pct": []
+}

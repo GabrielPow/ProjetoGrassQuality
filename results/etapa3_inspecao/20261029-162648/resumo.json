@@ -1,0 +1,21 @@
+{
+  "exemplos": {
+    "desmatamento (74% do patch, DETER 2024Q3)": {
+      "patch": "tapajos_252_4125",
+      "passo_evento": "2024Q3"
+    },
+    "mineracao (5% do patch, DETER 2023Q1)": {
+      "patch": "tapajos_245_4122",
+      "passo_evento": "2023Q1"
+    },
+    "fogo (86% do patch, DETER 2024Q3)": {
+      "patch": "tapajos_246_4112",
+      "passo_evento": "2024Q3"
+    },
+    "normal (sem evento 2019\u20132025)": {
+      "patch": "tapajos_259_4117",
+      "passo_evento": null
+    }
+  },
+  "normalizacao_ok": true
+}

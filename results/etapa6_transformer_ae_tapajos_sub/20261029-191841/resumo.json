@@ -1,0 +1,68 @@
+{
+  "fonte": "tapajos_sub",
+  "eval_split": "train",
+  "formulacao_principal": "masked",
+  "val_loss": {
+    "forecast": 0.4223873019218445,
+    "masked": 0.4100888967514038
+  },
+  "config": {
+    "mode": "masked",
+    "d_model": 128,
+    "layers": 4,
+    "epochs": 40,
+    "patience": 6,
+    "lr": 0.001,
+    "batch": 512,
+    "seed": 42,
+    "n_train": 26656,
+    "n_val": 5684,
+    "K": 8
+  },
+  "epocas": {
+    "forecast": 32,
+    "masked": 40
+  },
+  "auroc_todos": {
+    "anual": {
+      "Espectral | IForest (bandas + delta)": 0.876,
+      "Espectral | queda de NDVI": 0.7681,
+      "TerraMind S2 | Deep SVDD no delta": 0.898,
+      "TerraMind S2 | IForest no delta": 0.4928,
+      "TerraMind S2 | cosseno vs hist\u00f3rico": 0.5566,
+      "TerraMind S2 | cosseno vs mesmo trimestre (t-4, t-8)": 0.6025,
+      "TerraMind S2 | kNN est\u00e1tico (sem tempo)": 0.9279,
+      "TerraMind S2 | kNN no delta": 0.7614,
+      "TerraMind S2S1 | Deep SVDD no delta": 0.9263,
+      "TerraMind S2S1 | IForest no delta": 0.6793,
+      "TerraMind S2S1 | cosseno vs hist\u00f3rico": 0.7221,
+      "TerraMind S2S1 | cosseno vs mesmo trimestre (t-4, t-8)": 0.8023,
+      "TerraMind S2S1 | kNN est\u00e1tico (sem tempo)": 0.9689,
+      "TerraMind S2S1 | kNN no delta": 0.8989,
+      "Transformer AE | forecast": 0.777,
+      "Transformer AE | forecast + norm. local": 0.777,
+      "Transformer AE | masked": 0.7874,
+      "Transformer AE | masked + norm. local": 0.7874
+    },
+    "trimestral": {
+      "Espectral | IForest (bandas + delta)": 0.7062,
+      "Espectral | queda de NDVI": 0.7136,
+      "TerraMind S2 | Deep SVDD no delta": 0.6554,
+      "TerraMind S2 | IForest no delta": 0.5839,
+      "TerraMind S2 | cosseno vs hist\u00f3rico": 0.6074,
+      "TerraMind S2 | cosseno vs mesmo trimestre (t-4, t-8)": 0.6074,
+      "TerraMind S2 | kNN est\u00e1tico (sem tempo)": 0.6991,
+      "TerraMind S2 | kNN no delta": 0.6704,
+      "TerraMind S2S1 | Deep SVDD no delta": 0.6864,
+      "TerraMind S2S1 | IForest no delta": 0.6797,
+      "TerraMind S2S1 | cosseno vs hist\u00f3rico": 0.6953,
+      "TerraMind S2S1 | cosseno vs mesmo trimestre (t-4, t-8)": 0.6926,
+      "TerraMind S2S1 | kNN est\u00e1tico (sem tempo)": 0.7079,
+      "TerraMind S2S1 | kNN no delta": 0.7331,
+      "Transformer AE | forecast": 0.6844,
+      "Transformer AE | forecast + norm. local": 0.6844,
+      "Transformer AE | masked": 0.6839,
+      "Transformer AE | masked + norm. local": 0.6839
+    }
+  }
+}

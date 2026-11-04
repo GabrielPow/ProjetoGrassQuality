@@ -1,0 +1,7 @@
+,sum,sum,sum,mean,mean,mean
+split,test,train,val,test,train,val
+cobertura,,,,,,
+agricultura,,0.0,,,0.0,
+floresta,463.0,2008.0,404.0,0.34655688622754494,0.3311345646437995,0.3012677106636838
+outros,,0.0,,,0.0,
+pastagem,0.0,1.0,0.0,0.0,0.0012674271229404308,0.0

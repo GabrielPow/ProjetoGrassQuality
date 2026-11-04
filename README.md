@@ -8,9 +8,9 @@ Given a lat/lon, the app pulls that point's multi-year AlphaEarth embedding sequ
 Earth Engine, runs it through a trained temporal classifier, and shows the predicted class
 together with the per-class probabilities.
 
-## Two tracks in this repo
+## Tracks in this repo
 
-This repo covers two things:
+This repo covers three things:
 
 1. **`notebooks/` — the assignment's minimum required pipeline** (IBM8924 — AC de Projeto
    2026.2, Grupo 1): raw Sentinel-2 image patches (not embeddings) over the same MapBiomas
@@ -19,6 +19,8 @@ This repo covers two things:
 2. **`model/` + `app.py` — an additional, more advanced model** (AlphaEarth embeddings +
    an LSTM classifier, plus a Streamlit map UI), built before the raw-image pipeline above
    and kept as a bonus beyond the assignment's minimum. Described next.
+3. **`notebooks/gabriel/` — Amazon anomaly detection** with TerraMind embeddings, in progress — see
+   [Amazon anomaly detection](#amazon-anomaly-detection-notebooksgabriel).
 
 ## Advanced bonus model: AlphaEarth embeddings + LSTM (beyond the assignment minimum)
 
@@ -105,6 +107,27 @@ notes for more):
 - The MapBiomas Pasture class code (`15`) and asset/band names are worth reconfirming
   against the current legend at brasil.mapbiomas.org, since these can shift between
   MapBiomas collection versions.
+
+## Amazon anomaly detection (`notebooks/gabriel/`)
+
+Third track, in progress: unsupervised detection of environmental disturbance (deforestation,
+mining, fire, degradation) in the Amazon from TerraMind embeddings of Sentinel-2/Sentinel-1
+time series, with a Temporal Transformer autoencoder. Plan and status:
+[PLANO_IMPLEMENTACAO_ANOMALIA.md](PLANO_IMPLEMENTACAO_ANOMALIA.md); frozen evaluation protocol:
+[notebooks/gabriel/PROTOCOLO.md](notebooks/gabriel/PROTOCOLO.md). Notebooks run in order
+`01_ambiente` → `02_rotulos` → `03_cubo_sentinel` → `04_inspecao_cubo`.
+
+### Infrastructure limitations
+
+| Constraint | How the project responds |
+|---|---|
+| ~2 GB free on Google Drive (free tier) | Runs **locally** (360 GB free disk). Pixel data is a disposable cache rebuilt from Earth Engine; only embeddings are kept (~0.4 GB for both full study areas). Nothing large goes to Drive. |
+| No local GPU (i5-13420H, 16 GB RAM) | TerraMind Small on CPU: 40 ms/patch (S2), 81 ms/patch (S2+S1), measured 29/10. Sub-area in minutes, full areas overnight. The autoencoder works on 384-d vectors and trains on CPU. |
+| Earth Engine download is the bottleneck | Block-wise, parallel, resumable requests; full areas are streamed to embeddings without storing pixels. |
+| Consequences | Full-resolution token maps (~160 m) only for a 35.8 km sub-area; full-area anomaly maps at patch resolution (2.24 km). Pixel cube limited to that sub-area (16 × 16 patches, ~5–8 GB) instead of the full area (~330 GB). |
+
+Local setup: `venv\Scripts\python -m pip install -r notebooks/gabriel/requirements-local.txt`, then
+`venv\Scripts\earthengine authenticate` once.
 
 ## Minimum required pipeline (`notebooks/`)
 

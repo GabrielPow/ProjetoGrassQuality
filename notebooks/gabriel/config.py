@@ -1,6 +1,8 @@
 """Config compartilhada dos notebooks de detecção de anomalias (PLANO_IMPLEMENTACAO_ANOMALIA.md).
 
-Roda localmente (Windows, sem GPU) e no Google Colab (GPU, dados no Drive).
+Desde 29/10 o fluxo principal é **local** (Windows, CPU; TerraMind Small a ~40 ms/patch), porque
+restam só 2 GB no Google Drive. O Colab continua possível, mas os pixels vão para o disco temporário da
+VM e nunca para o Drive. Ver "Limitações de infraestrutura" no PLANO.
 """
 import sys
 from pathlib import Path
@@ -18,6 +20,8 @@ DATA_DIR = DATA_ROOT / 'data'
 EMBEDDINGS_DIR = DATA_ROOT / 'embeddings'
 CHECKPOINTS_DIR = DATA_ROOT / 'checkpoints'
 RESULTS_DIR = DATA_ROOT / 'results'
+# Pixels (cubo Zarr) são um cache descartável, refeito a partir do Earth Engine. Nunca vão para o Drive.
+CUBE_DIR = Path('/content/cache') if IN_COLAB else DATA_DIR
 FIRSTPASS_DIR = REPO_ROOT / 'experiments' / 'amazon_anomaly_firstpass'
 
 # ---- reprodutibilidade / Earth Engine (mesmos valores do first pass) ----
@@ -39,8 +43,9 @@ STEPS = [f'{y}Q{q}' for y in YEARS for q in range(1, 5)]   # 28 passos, 2019Q1..
 TRAIN_END_YEAR = 2022                   # treino: sequências terminando até 2022; teste: 2023–2025
 
 # ---- sensores e patches ----
-S2_BANDS = ['B2', 'B3', 'B4', 'B8', 'B11', 'B12']   # conferir contra o que o TerraMind S2L2A espera (Etapa 3)
-S1_BANDS = ['VV', 'VH']
+# ordem exata do TerraMind (terratorch PRETRAINED_BANDS['untok_sen2l2a@224']): B1–B12 sem B10
+S2_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']
+S1_BANDS = ['VV', 'VH']                 # dB, como o S1GRD do TerraMind
 PATCH_SIZE = 224
 RESOLUTION_M = 10
 PATCH_M = PATCH_SIZE * RESOLUTION_M     # 2240 m; grade alinhada a múltiplos de 2240 m em UTM
@@ -50,8 +55,12 @@ SPLIT_TARGET = (0.70, 0.15, 0.15)       # train / val / test, em número de patc
 # ---- rótulos (Etapa 2) ----
 EVENT_MIN_FRAC = 0.01                   # >= 1% do patch (~5 ha) conta como evento na avaliação
 # 0 < fração < EVENT_MIN_FRAC: patch-passo "ambíguo", fora da avaliação e fora dos normais
-NORMAL_MAX_FRAC = 0.001                 # normal de treino: em cada fonte, soma 2019–2025 < 0,1% (~0,5 ha);
-                                        # tolera o ruído de pixel isolado (30 m) de MapBiomas/Hansen
+NORMAL_MAX_FRAC = 0.001                 # regra ANTIGA (só informativa): em cada fonte, soma 2019–2025 < 0,1%
+# Regra em vigor (29/10): normal por JANELA. (patch, ano T) é normal se T-1, T e T+1 não têm evento.
+# Motivo: a regra por patch deixava 1 patch de pastagem no treino do Tapajós (ver PROTOCOLO.md).
+NORMAL_WINDOW_YEARS = 2                 # a janela de histórico do modelo cabe em T-1..T (até 8 trimestres)
+NORMAL_BUFFER_YEARS = 1                 # T+1 também limpo: evita treinar com a véspera de um evento
+K_HIST = 4                              # baselines: histórico = média dos 4 trimestres anteriores
 EVENT_TYPES = ['desmatamento', 'mineracao', 'fogo', 'degradacao', 'corte_seletivo', 'agua']
 DETER_CLASSES = {
     'DESMATAMENTO_CR': 'desmatamento', 'DESMATAMENTO_VEG': 'desmatamento',
@@ -70,6 +79,38 @@ TERRAMIND_SMALL = 'terratorch_terramind_v1_small'
 TERRAMIND_S2_CHANNELS = 12      # S2L2A: B1–B12 sem B10
 TERRAMIND_EMBED_DIM = 384
 TERRAMIND_TOKEN_GRID = 14       # 224 px / 16 px -> 14 x 14 = 196 tokens
+# Unidade de análise (decidida em 29/10 após o gate): CÉLULA = 2 x 2 tokens = 320 m; 7 x 7 = 49 células por patch.
+# Os modelos pontuam cada célula; o score do patch é o MÁXIMO das células (rótulos e protocolo ficam no patch).
+# Motivo: a média do patch de 2,24 km dilui eventos pequenos (gate: 0,57 no patch vs 0,84 no token).
+CELL_POOL = 2
+CELL_GRID = TERRAMIND_TOKEN_GRID // CELL_POOL    # 7
+N_CELLS = CELL_GRID ** 2                          # 49
+CELL_M = PATCH_M // CELL_GRID                     # 320 m
+# O backbone ViT NÃO normaliza a entrada: padronizar com as estatísticas de pré-treino
+# (terratorch v1.2.13, terramind_register.py, v1_pretraining_mean/std). S2 em DN L2A (refl. x 10000), S1 em dB.
+TERRAMIND_STATS = {
+    'S2L2A': {'mean': [1390.458, 1503.317, 1718.197, 1853.91, 2199.1, 2779.975, 2987.011, 3083.234,
+                       3132.22, 3162.988, 2424.884, 1857.648],
+              'std': [2106.761, 2141.107, 2038.973, 2134.138, 2085.321, 1889.926, 1820.257, 1871.918,
+                      1753.829, 1797.379, 1434.261, 1334.311]},
+    'S1GRD': {'mean': [-12.599, -20.293], 'std': [5.195, 5.890]},
+}
+
+# ---- dados Sentinel (Etapa 3) ----
+S2_ASSET = 'COPERNICUS/S2_SR_HARMONIZED'            # sem o offset de +1000 do baseline 04.00
+CLOUD_SCORE_ASSET = 'GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED'
+CLOUD_SCORE_MIN = 0.6                                # mesmo limiar do first pass
+S1_ASSET = 'COPERNICUS/S1_GRD'
+MIN_CLEAR_FRAC = 0.5    # patch-passo com < 50% de pixels com observação limpa = "dado faltante" (máscara)
+# Sub-AOI com cubo de pixels completo (4 x 4 blocos = 16 x 16 patches = 35,8 km), escolhida em
+# 03_cubo_sentinel.ipynb por diversidade de eventos. O resto das AOIs vai direto para embeddings (Etapa 4).
+SUBAOI_BLOCKS = 4
+# (col, row) do patch no canto inferior esquerdo. Escolhido em 29/10 com dados.select_subaoi usando só
+# PRODES + DETER (melhor de 30 janelas válidas): lon -56,57 a -56,26, lat -7,13 a -6,82; 256 patches
+# (192 train, 48 val, 16 test); 113 patches com desmatamento, 67 mineração, 72 fogo, 35 degradação.
+SUBAOI_ORIGIN = (244, 4112)
+STORAGE_BUDGET_GB = 20   # o download para se a projeção do cubo passar disso (disco local: 360 GB livres)
+CUBE_PATH_NAME = 'cubo_tapajos_sub.zarr'
 
 # ---- classes MapBiomas: reaproveitadas do first pass (common.py só importa ee, não inicializa) ----
 sys.path.insert(0, str(FIRSTPASS_DIR))
@@ -99,5 +140,5 @@ def as_dict():
 
 
 def make_dirs():
-    for d in (DATA_DIR, EMBEDDINGS_DIR, CHECKPOINTS_DIR, RESULTS_DIR, LABELS_DIR):
+    for d in (DATA_DIR, EMBEDDINGS_DIR, CHECKPOINTS_DIR, RESULTS_DIR, LABELS_DIR, CUBE_DIR):
         d.mkdir(parents=True, exist_ok=True)

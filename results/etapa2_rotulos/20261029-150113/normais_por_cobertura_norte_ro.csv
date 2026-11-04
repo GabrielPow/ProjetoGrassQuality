@@ -1,0 +1,9 @@
+,sum,mean
+split,test_gen,test_gen
+cobertura,,
+agricultura,4,0.04938271604938271
+agua,1,0.006896551724137931
+floresta,2017,0.3367278797996661
+natural_nao_florestal,7,0.043478260869565216
+outros,5,0.125
+pastagem,3,0.0009296560272699101

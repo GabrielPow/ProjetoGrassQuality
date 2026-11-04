@@ -145,24 +145,33 @@ fixando o protocolo.
 
 ## Etapa 3 — Dados Sentinel e séries temporais
 
+> **Status (29/10):** código em `dados.py`, `03_cubo_sentinel.ipynb` e `04_inspecao_cubo.ipynb`, testado
+> localmente com download simulado. **Falta** rodar o `03` **localmente** (~1 h, limitado pelo Earth Engine)
+> e o `04` para inspecionar. Ver [Limitações de infraestrutura](#limitações-de-infraestrutura).
+> **Mudança de escopo:** o Tapajós inteiro daria ~330 GB só de S2. O cubo de pixels cobre uma sub-AOI de
+> 16 × 16 patches (35,8 km, cerca de 5–8 GB no disco local). Nas AOIs completas, a Etapa 4 baixa as mesmas
+> composições bloco a bloco e guarda só os embeddings. O download usa `ee.data.computePixels` direto para
+> numpy (sem GeoTIFF). O S1 é GRD em dB (o Earth Engine não tem RTC; o TerraMind tem estatísticas próprias
+> para S1GRD). A normalização é aplicada na leitura (`dados.normalize`), não no cubo.
+
 ### 3.1 Aquisição
-- [ ] **Sentinel-2 L2A** (bandas que o TerraMind espera para `S2L2A`; conferir a lista na
+- [x] **Sentinel-2 L2A** (bandas que o TerraMind espera para `S2L2A`; conferir a lista na
       documentação do TerraTorch) com máscara de nuvem Cloud Score+.
-- [ ] **Sentinel-1 GRD/RTC** (VV, VH). Na Amazônia a nuvem é o maior problema e o radar
+- [x] **Sentinel-1 GRD/RTC** (VV, VH). Na Amazônia a nuvem é o maior problema e o radar
       enxerga através dela. O TerraMind aceita S1 nativamente, então vale incluir desde o
       início, mesmo que o primeiro experimento use só S2.
-- [ ] **Composições por período:** começar com **trimestral** (4 passos/ano; ~28 passos
+- [x] **Composições por período:** começar com **trimestral** (4 passos/ano; ~28 passos
       em 2019–2025). Mediana dentro do período com nuvens mascaradas, e uma máscara de
       "dado faltante" quando não houver observação limpa (comum de dez. a abr.).
-- [ ] **Exportação:** Earth Engine → GeoTIFF (Drive/GCS), ou STAC do Microsoft Planetary
+- [x] **Exportação:** Earth Engine → GeoTIFF (Drive/GCS), ou STAC do Microsoft Planetary
       Computer. Estimar o volume antes de baixar.
 
 ### 3.2 Patches
-- [ ] Grade regular de patches **224 × 224 px a 10 m** (~2,24 km), o tamanho de entrada
+- [x] Grade regular de patches **224 × 224 px a 10 m** (~2,24 km), o tamanho de entrada
       do TerraMind.
-- [ ] Guardar como **cubo** `(patch, tempo, canal, H, W)` em Zarr, com coordenadas,
+- [x] Guardar como **cubo** `(patch, tempo, canal, H, W)` em Zarr, com coordenadas,
       bloco espacial e máscara de nuvem por passo.
-- [ ] Normalizar com as estatísticas que o TerraMind espera por modalidade (não com
+- [x] Normalizar com as estatísticas que o TerraMind espera por modalidade (não com
       estatísticas próprias).
 
 **Entregável:** cubo Zarr da AOI principal e um notebook de inspeção visual (alguns patches
@@ -171,6 +180,30 @@ ao longo do tempo, com e sem evento).
 ---
 
 ## Etapa 4 — Modelo 1: embeddings com TerraMind Small
+
+> **Status (29/10):** código em `embeddings.py`, `05_embeddings.ipynb` e `stream_embeddings.py` (AOIs completas,
+> em fluxo e retomável; ~10–11 h por AOI em CPU, ainda **não iniciado**). Sub-AOI extraída: 256 patches × 28
+> trimestres, S2 e S2 + S1, com grade de tokens, em 24,6 min de CPU.
+>
+> **Gate: PASSA na célula de 320 m (0,812). Não passava na média do patch (0,567). Causa: escala, não o modelo.**
+> Os 671 pontos de teste do first pass e as composições anuais estão em
+> `results/etapa4_embeddings/20261029-175911/gate_escala.csv` e no run do `05_embeddings` de 29/10 ~19h.
+>
+> | Escala (671 pontos, salvo indicação) | Todas | Desm. × floresta | Desm. × pastagem | Mineração |
+> |---|---|---|---|---|
+> | AlphaEarth, pixel 10 m (first pass) | 0,890 | 0,985 | 0,854 | 0,866 |
+> | AlphaEarth, média do patch 2,24 km | 0,539 | 0,950 | 0,754 | 0,291 |
+> | TerraMind S2 + S1, média do patch 2,24 km | 0,567 | 0,894 | 0,671 | 0,396 |
+> | **TerraMind S2 + S1, célula de 320 m do ponto** | **0,812** | 0,940 | 0,716 | **0,800** |
+> | TerraMind só S2, célula de 320 m do ponto | 0,797 | 0,913 | 0,705 | 0,786 |
+> | TerraMind S2 + S1, token ~160 m (106 pts na sub-AOI) | 0,836 | 0,916 | 0,690 | 0,856 |
+>
+> Na mesma escala, TerraMind ≈ AlphaEarth. A média de 2,24 km dilui eventos pequenos (garimpo, cortes),
+> e a pastagem "normal" muda muito no patch inteiro.
+> **Decidido (29/10): unidade = célula de 2 × 2 tokens (320 m), 49 por patch.** Os modelos pontuam células e
+> o patch recebe o máximo; rótulos e protocolo continuam no patch. O `stream_embeddings.py` guarda as células
+> (~21 GB por AOI no disco local). A distância restante para o AlphaEarth de pixel (0,81 vs. 0,89) é esperada:
+> 320 m ainda é 32 × o pixel de 10 m em que o first pass rotulou.
 
 - [ ] Carregar o **TerraMind 1.0 Small** pelo TerraTorch (backbone pré-treinado, congelado).
       Conferir o nome exato no registry da versão instalada.
@@ -204,13 +237,54 @@ Todos treinados **só com sequências normais** e avaliados no mesmo protocolo.
 | Mudança por cosseno | `Z(t)` vs. média do histórico | Baseline sem parâmetros |
 | AlphaEarth (anual) | Mesmos scores | Comparação com outro FM |
 
-- [ ] Implementar com scikit-learn (Isolation Forest) e PyTorch (Deep SVDD).
-- [ ] Ajustar hiperparâmetros **apenas** no conjunto de validação de normais (sem usar
-      rótulos de anomalia).
+- [x] Implementar com scikit-learn (Isolation Forest) e PyTorch (Deep SVDD). (`baselines.py`, `06_baselines.ipynb`)
+- [x] Ajustar hiperparâmetros **apenas** no conjunto de validação de normais (sem usar
+      rótulos de anomalia). k = 10 e 300 árvores fixados a priori; o Deep SVDD para pela perda nos normais de val.
+
+> **Status (29/10):** rodado só na sub-AOI, como **diagnóstico**: blocos de treino em 2023–2025, holdout só
+> temporal. **Não reportar.** Na **célula de 320 m**, com o patch pontuado pelo máximo das células:
+> `results/etapa5_baselines_tapajos_sub/20261029-181114`. A versão anterior, na média do patch, fica em
+> `.../20261029-170056` como registro da escala.
+> - **Trimestral (todas):** tudo entre 0,58 e 0,73. Melhor: kNN no delta (S2 + S1) 0,73; queda de NDVI 0,71;
+>   kNN estático 0,71. Os ICs se sobrepõem, então nenhum baseline separa dos outros nessa amostra.
+> - **Anual (todas):** o kNN estático vence (AlphaEarth 0,99, TerraMind S2 + S1 0,97), repetindo o alerta do first
+>   pass. Os poucos patch-anos limpos (35%) são floresta intacta, e "é fronteira?" já separa. O teste justo para
+>   o modelo temporal é o trimestral e a normalização local da Etapa 6.4.
+> - **Máximo das células > média do patch** em 29 de 30 comparações (ganho de até +0,22 AUROC), o que confirma a
+>   mudança de unidade.
+> - S2 + S1 > só S2 em todos os métodos TerraMind.
+> - A sazonalidade pesa: o cosseno vs. o mesmo trimestre de anos anteriores entrou como baseline adicional (motivo
+>   de domínio, sem substituir o original). Ele ajudou na média do patch (0,56 → 0,64) e empatou nas células.
+> - **Regra de normais mudou** (por janela, ver `PROTOCOLO.md`): a regra por patch deixava 1 patch de pastagem no treino.
+> - Tempo em CPU: 6,7 min para 301 mil células. AOI completa (~11 milhões de células): estimativa de 3–4 h.
 
 ---
 
 ## Etapa 6 — Modelo 2: Temporal Transformer Autoencoder
+
+> **Status (29/10):** código em `modelo.py` e `07_transformer_ae.ipynb`. A entrada é a célula de 320 m (não o
+> patch): sequência de 9 trimestres de embeddings TerraMind S2 + S1, com codificação de ano e trimestre e máscara
+> de atenção. Arquitetura: d = 128, 4 camadas, 4 cabeças, gargalo 64 (0,93 M parâmetros). O plano previa d = 256;
+> a escolha final sai da perda na validação de normais.
+> As duas formulações de 6.2 usam a mesma arquitetura, e a principal é escolhida pela perda nos normais de
+> validação: **masked** (0,410) venceu **forecast** (0,422).
+>
+> **Diagnóstico na sub-AOI** (blocos de treino em 2023–2025, holdout só temporal, **não reportar**;
+> `results/etapa6_transformer_ae_tapajos_sub/20261029-191841`):
+> - Trimestral (todas): AE 0,684 (IC 0,61–0,76) × melhor baseline kNN no delta 0,733 (IC 0,63–0,82). Os ICs se
+>   sobrepõem. Por tipo, o AE fica no meio do grupo (desmatamento 0,82–0,83; mineração 0,66; fogo 0,68).
+> - Anual: AE 0,78 × kNN estático 0,97. O alerta do first pass continua.
+> - Normalização local **não testável na sub-AOI**: todos os normais de validação são floresta (116 patch-passos,
+>   0 de pastagem), então todas as coberturas caem na mesma referência e o resultado é idêntico ao bruto.
+> - Treino pequeno: 27 mil sequências de 544 patch-passos normais (520 de floresta, 24 de pastagem).
+>
+> **Leitura:** na sub-AOI, o modelo temporal ainda não supera os baselines simples. O teste real (E1/E2) precisa
+> das AOIs completas: ~200 mil sequências de treino, normais de pastagem na validação para a normalização local,
+> e teste espacial de verdade. Se o resultado se mantiver, é um achado publicável se bem documentado (ver Riscos).
+>
+> **Tempo em CPU (medido):** treino ~1,5 min por 100 mil sequências por época, com variação (a formulação masked
+> desacelerou para ~1 min/época na sub-AOI). Pontuação: ~150 s por milhão de células. Tapajós completo: ~3–3,5 h
+> no total (duas formulações + pontuação das duas AOIs), depois dos embeddings de toda a AOI.
 
 ### 6.1 Arquitetura (ponto de partida)
 - Entrada: sequência `Z(t−k), …, Z(t)` com k ≈ 8 (dois anos de trimestres).
@@ -328,6 +402,28 @@ experimento que justifica o modelo principal.
 | Volume de dados maior que o esperado | Estoura disco ou tempo de download | Começar por uma sub-AOI de ~50 × 50 km; estimar antes de exportar |
 | Pastagem domina os falsos positivos | Mapa pouco útil | Normalização local do score (6.4) |
 | Rótulos com erros ou atraso (PRODES é anual) | Métricas pessimistas | Combinar PRODES + DETER; métricas por evento; inspeção visual dos erros |
+| Pouco espaço no Google Drive (~2 GB livres) | Não cabe o cubo de pixels | Fluxo local; pixels como cache descartável (ver abaixo) |
+
+---
+
+## Limitações de infraestrutura
+
+Registradas em 29/10. Valem como limitação do trabalho no relatório.
+
+| Restrição | Efeito | Como o projeto responde |
+|---|---|---|
+| **Google Drive com ~2 GB livres** (plano gratuito, 15 GB) | Não cabe o cubo de pixels da sub-AOI (5–8 GB), muito menos as AOIs completas (~330 GB só de S2). O plano original guardava tudo no Drive | Fluxo **local** desde 29/10 (360 GB livres no disco). Os pixels viram um **cache descartável**, refeito do Earth Engine se perdido. O produto guardado são os **embeddings**: ~0,4 GB para as duas AOIs inteiras (média por patch, float16). No Colab, pixels só no disco temporário da VM. Nada grande vai para o Drive |
+| **Sem GPU local** (notebook i5-13420H, 8 núcleos, 16 GB de RAM) | Extração mais lenta que no Colab (T4: ~10 ms/patch) | TerraMind Small em CPU, medido em 29/10: **40 ms/patch (S2)** e **81 ms/patch (S2+S1)**. Sub-AOI (7.168 patch-trimestres): 5–10 min. AOIs completas (~545 mil): ~6 h (S2) a ~12 h (S2+S1), uma noite. O Transformer AE trabalha sobre vetores de 384 dimensões e treina em CPU |
+| **Download do Earth Engine** (cota e conexão) | Vira o gargalo: ~1 h para a sub-AOI; nas AOIs completas, ~68 mil requisições (estimativa de dezenas de horas, a confirmar com o teste de bloco do `03`) | Requisições por bloco de 8,96 km, 8 em paralelo e retomáveis. Nas AOIs completas, baixar e extrair em fluxo contínuo, sem guardar pixels. Se não couber no prazo, amostrar patches (todos com evento + amostra de normais) |
+| **Windows Smart App Control** | Em out/2026 bloqueou DLLs de pandas/scipy/sklearn; em 29/10 elas carregam | Métricas em numpy puro (`utils.py`), que funcionam mesmo com bloqueio. Dependências locais fixadas em `notebooks/gabriel/requirements-local.txt` |
+
+**Consequências para os resultados:**
+- A **grade de tokens** (14 × 14 por patch, ~160 m) só é guardada na sub-AOI (~1 GB). Nas AOIs completas
+  ocuparia ~82 GB, então lá os mapas de anomalia (Etapa 8) ficam na resolução do patch (2,24 km). Mapas
+  por token só na sub-AOI.
+- Refazer a extração (outra normalização, TerraMind Base no E6) exige baixar de novo do Earth Engine. Por
+  isso o E6 (Small vs. Base) fica limitado à sub-AOI.
+- A sub-AOI foi escolhida pelos rótulos e não serve para reportar métricas (ver `PROTOCOLO.md`).
 
 ---
 
@@ -335,8 +431,10 @@ experimento que justifica o modelo principal.
 
 1. ~~Onde rodar o pesado: Colab, Kaggle, WSL2 ou desativar o Smart App Control?~~
    **Decidido (15/10): Google Colab**, dados no Drive (`MyDrive/ProjetoGrassQuality`).
-2. Composição trimestral ou mensal? (Mensal dá mais resolução temporal, mas com muito mais
+   **Revisto (29/10): fluxo local em CPU** por falta de espaço no Drive. O Colab fica como opção, sem
+   guardar pixels no Drive. Ver [Limitações de infraestrutura](#limitações-de-infraestrutura).
+2. ~~Composição trimestral ou mensal?~~ **Decidido (29/10): trimestral.** (Mensal dá mais resolução temporal, mas com muito mais
    passos vazios.)
-3. S1 entra já no primeiro modelo ou só como ablação (E5)?
+3. ~~S1 entra já no primeiro modelo ou só como ablação (E5)?~~ **Decidido (29/10): S1 no cubo desde o início.**
 4. ~~Qual a AOI de generalização?~~ **Decidido (15/10): norte de Rondônia** `[-64, -10, -62, -8]`.
 5. Quem cuida de cada etapa (o README precisa da divisão de tarefas).

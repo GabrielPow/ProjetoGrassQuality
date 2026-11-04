@@ -1,0 +1,53 @@
+task,score,escala,AUROC,AUROC_lo,AUROC_hi,TPR_at_5FPR
+all anomalies vs all normals,TerraMind S2 célula 320 m cosine change (T),célula 320 m,0.7965256797583081,0.757660829948633,0.838010822818912,0.48823529411764705
+deforest vs stable forest,TerraMind S2 célula 320 m cosine change (T),célula 320 m,0.913012048192771,0.8825837077927712,0.9407155334547085,0.6933333333333334
+deforest vs stable pasture,TerraMind S2 célula 320 m cosine change (T),célula 320 m,0.7048888888888889,0.6299742478341054,0.7700442042455546,0.28
+mining vs all normals,TerraMind S2 célula 320 m cosine change (T),célula 320 m,0.7864684369534107,0.7265687430263925,0.8408219325526846,0.5421052631578948
+all anomalies vs all normals,TerraMind S2 célula 320 m cosine change (T+1),célula 320 m,0.7780700195486049,0.7381246529771197,0.8193954587325256,0.40294117647058825
+deforest vs stable forest,TerraMind S2 célula 320 m cosine change (T+1),célula 320 m,0.923012048192771,0.8867879077033369,0.9539628399746996,0.6466666666666666
+deforest vs stable pasture,TerraMind S2 célula 320 m cosine change (T+1),célula 320 m,0.6764444444444444,0.5992938913646514,0.7396635088134551,0.24
+mining vs all normals,TerraMind S2 célula 320 m cosine change (T+1),célula 320 m,0.7606773731912864,0.701067877141481,0.8158468181075036,0.4473684210526316
+all anomalies vs all normals,"TerraMind S2 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.5599164741425271,0.5114799570340668,0.613807500333195,0.19705882352941176
+deforest vs stable forest,"TerraMind S2 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.8140963855421687,0.7501932931591747,0.8651304619804935,0.44
+deforest vs stable pasture,"TerraMind S2 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.6853737373737374,0.614958287532739,0.7594204761211313,0.37333333333333335
+mining vs all normals,"TerraMind S2 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.40990618540308477,0.3445390448471774,0.4853042135327444,0.02631578947368421
+all anomalies vs all normals,"TerraMind S2 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.5333970143948819,0.478314936398044,0.595824329472062,0.14705882352941177
+deforest vs stable forest,"TerraMind S2 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.8317670682730923,0.782834541807139,0.8805375256323997,0.49333333333333335
+deforest vs stable pasture,"TerraMind S2 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.6792525252525252,0.6136724636779538,0.7452669301826298,0.26666666666666666
+mining vs all normals,"TerraMind S2 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.3578629352838289,0.2921777198955398,0.4362804887677947,0.021052631578947368
+all anomalies vs all normals,TerraMind S2S1 célula 320 m cosine change (T),célula 320 m,0.812377821219122,0.7761450985654673,0.8503805182280857,0.5411764705882353
+deforest vs stable forest,TerraMind S2S1 célula 320 m cosine change (T),célula 320 m,0.9397590361445783,0.912530922252622,0.9629411623100589,0.76
+deforest vs stable pasture,TerraMind S2S1 célula 320 m cosine change (T),célula 320 m,0.7156767676767677,0.6410706583579815,0.7828997702709908,0.3333333333333333
+mining vs all normals,TerraMind S2S1 célula 320 m cosine change (T),célula 320 m,0.8,0.747653606426556,0.8480081392811244,0.5947368421052631
+all anomalies vs all normals,TerraMind S2S1 célula 320 m cosine change (T+1),célula 320 m,0.8042473787097921,0.7682304092936421,0.8414456639928403,0.46176470588235297
+deforest vs stable forest,TerraMind S2S1 célula 320 m cosine change (T+1),célula 320 m,0.9504417670682731,0.9199151855792222,0.9730629177564661,0.7666666666666667
+deforest vs stable pasture,TerraMind S2S1 célula 320 m cosine change (T+1),célula 320 m,0.7336565656565657,0.6609013471774696,0.7927744621353855,0.43333333333333335
+mining vs all normals,TerraMind S2S1 célula 320 m cosine change (T+1),célula 320 m,0.7741453331213229,0.7173085210188843,0.8275634611970725,0.4263157894736842
+all anomalies vs all normals,"TerraMind S2S1 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.5665141283099342,0.513896340954083,0.6239022340474956,0.19117647058823528
+deforest vs stable forest,"TerraMind S2S1 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.893855421686747,0.8477375727333375,0.9264085113980393,0.58
+deforest vs stable pasture,"TerraMind S2S1 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.6707070707070707,0.5965824952558906,0.7454565913478862,0.3933333333333333
+mining vs all normals,"TerraMind S2S1 média patch 2,24 km cosine change (T)","média patch 2,24 km",0.39590554937191924,0.33054143492493776,0.4790079286559797,0.02631578947368421
+all anomalies vs all normals,"TerraMind S2S1 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.5543184645459392,0.4954363856019352,0.6187266375577353,0.17941176470588235
+deforest vs stable forest,"TerraMind S2S1 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.9096787148594377,0.8717797273967283,0.9417927700311653,0.6266666666666667
+deforest vs stable pasture,"TerraMind S2S1 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.6941010101010101,0.6248273200654184,0.7669062026148723,0.3333333333333333
+mining vs all normals,"TerraMind S2S1 média patch 2,24 km cosine change (T+1)","média patch 2,24 km",0.3586102719033233,0.28503824261856525,0.43990698917181525,0.015789473684210527
+all anomalies vs all normals,AE cosine change (T),pixel 10 m (first pass),0.8896481251110716,0.8619561401985851,0.9176714606928376,0.6764705882352942
+all anomalies vs all normals,AE cosine change (T+1),pixel 10 m (first pass),0.8887062377821219,0.8669669079364324,0.9151083895352368,0.6676470588235294
+all anomalies vs all normals,"AE kNN static, no time (T)",pixel 10 m (first pass),0.9255020437177892,0.9000574914386864,0.950268058633034,0.6617647058823529
+all anomalies vs all normals,NDVI drop (T),pixel 10 m (first pass),0.8187755464723654,0.7844245099274945,0.8512063078703704,0.488235294117647
+all anomalies vs all normals,S2 band distance (T),pixel 10 m (first pass),0.7857384041229785,0.7331411350923434,0.8309609568169122,0.4088235294117647
+deforest vs stable forest,AE cosine change (T),pixel 10 m (first pass),0.9852208835341364,0.9691704993829768,0.9942355856332734,0.94
+deforest vs stable forest,AE cosine change (T+1),pixel 10 m (first pass),0.9832128514056224,0.9689266594077866,0.9916289690785328,0.8933333333333333
+deforest vs stable forest,"AE kNN static, no time (T)",pixel 10 m (first pass),0.9769879518072287,0.9576634609936852,0.9913471445128134,0.9066666666666666
+deforest vs stable forest,NDVI drop (T),pixel 10 m (first pass),0.8762650602409638,0.8334468843002378,0.9176043630995864,0.72
+deforest vs stable forest,S2 band distance (T),pixel 10 m (first pass),0.9,0.8645024879870647,0.9282931679264256,0.6733333333333333
+deforest vs stable pasture,AE cosine change (T),pixel 10 m (first pass),0.8538181818181818,0.7995106544662932,0.8966780234607357,0.66
+deforest vs stable pasture,AE cosine change (T+1),pixel 10 m (first pass),0.8631111111111112,0.8233642523541839,0.9025032513465284,0.6266666666666667
+deforest vs stable pasture,"AE kNN static, no time (T)",pixel 10 m (first pass),0.816969696969697,0.751313630204696,0.8734335030761556,0.3866666666666666
+deforest vs stable pasture,NDVI drop (T),pixel 10 m (first pass),0.7486868686868687,0.6902739273739437,0.8043718161788502,0.24
+deforest vs stable pasture,S2 band distance (T),pixel 10 m (first pass),0.5808888888888889,0.5063337341225799,0.6496978672594128,0.16
+mining vs all normals,AE cosine change (T),pixel 10 m (first pass),0.8659087295277469,0.8232221834285425,0.9071823078027343,0.6736842105263158
+mining vs all normals,AE cosine change (T+1),pixel 10 m (first pass),0.861361106694228,0.8215718166124607,0.8996065855876539,0.631578947368421
+mining vs all normals,"AE kNN static, no time (T)",pixel 10 m (first pass),0.9478295436476388,0.9213587131044304,0.9699577790806524,0.8105263157894737
+mining vs all normals,NDVI drop (T),pixel 10 m (first pass),0.8235967562410558,0.7756728877830099,0.8712697253669621,0.6210526315789474
+mining vs all normals,S2 band distance (T),pixel 10 m (first pass),0.8211162346955001,0.771848727818257,0.8677648572428776,0.5631578947368421

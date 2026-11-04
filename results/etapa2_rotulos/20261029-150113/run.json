@@ -1,0 +1,316 @@
+{
+  "name": "etapa2_rotulos",
+  "seed": 42,
+  "created": "2026-10-29T15:01:13",
+  "git": {
+    "commit": "002ac348bec2385751fa9c0201b85d288285918d",
+    "branch": "Terramind",
+    "dirty": true
+  },
+  "platform": "Windows-11-10.0.26300-SP0",
+  "python": "3.13.14",
+  "in_colab": false,
+  "packages": {
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "torch": "2.14.0",
+    "terratorch": "1.2.13",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1",
+    "rasterio": "1.5.2",
+    "xarray": "2026.9.0",
+    "zarr": "3.4.1",
+    "geopandas": "1.2.0",
+    "earthengine-api": "1.7.43"
+  },
+  "config": {
+    "IN_COLAB": false,
+    "REPO_ROOT": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality",
+    "DATA_ROOT": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality",
+    "DATA_DIR": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\data",
+    "EMBEDDINGS_DIR": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\embeddings",
+    "CHECKPOINTS_DIR": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\checkpoints",
+    "RESULTS_DIR": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\results",
+    "CUBE_DIR": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\data",
+    "FIRSTPASS_DIR": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\experiments\\amazon_anomaly_firstpass",
+    "SEED": 42,
+    "EE_PROJECT_ID": "projetograssquality",
+    "AOI_MAIN": [
+      -57.0,
+      -7.5,
+      -55.0,
+      -5.5
+    ],
+    "AOI_GENERALIZATION": [
+      -64.0,
+      -10.0,
+      -62.0,
+      -8.0
+    ],
+    "AOIS": {
+      "tapajos": {
+        "bounds": [
+          -57.0,
+          -7.5,
+          -55.0,
+          -5.5
+        ],
+        "epsg": 32721,
+        "role": "principal"
+      },
+      "norte_ro": {
+        "bounds": [
+          -64.0,
+          -10.0,
+          -62.0,
+          -8.0
+        ],
+        "epsg": 32720,
+        "role": "generalizacao"
+      }
+    },
+    "YEARS": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "PERIOD": "quarterly",
+    "STEPS": [
+      "2019Q1",
+      "2019Q2",
+      "2019Q3",
+      "2019Q4",
+      "2020Q1",
+      "2020Q2",
+      "2020Q3",
+      "2020Q4",
+      "2021Q1",
+      "2021Q2",
+      "2021Q3",
+      "2021Q4",
+      "2022Q1",
+      "2022Q2",
+      "2022Q3",
+      "2022Q4",
+      "2023Q1",
+      "2023Q2",
+      "2023Q3",
+      "2023Q4",
+      "2024Q1",
+      "2024Q2",
+      "2024Q3",
+      "2024Q4",
+      "2025Q1",
+      "2025Q2",
+      "2025Q3",
+      "2025Q4"
+    ],
+    "TRAIN_END_YEAR": 2022,
+    "S2_BANDS": [
+      "B1",
+      "B2",
+      "B3",
+      "B4",
+      "B5",
+      "B6",
+      "B7",
+      "B8",
+      "B8A",
+      "B9",
+      "B11",
+      "B12"
+    ],
+    "S1_BANDS": [
+      "VV",
+      "VH"
+    ],
+    "PATCH_SIZE": 224,
+    "RESOLUTION_M": 10,
+    "PATCH_M": 2240,
+    "BLOCK_PATCHES": 4,
+    "SPLIT_TARGET": [
+      0.7,
+      0.15,
+      0.15
+    ],
+    "EVENT_MIN_FRAC": 0.01,
+    "NORMAL_MAX_FRAC": 0.001,
+    "EVENT_TYPES": [
+      "desmatamento",
+      "mineracao",
+      "fogo",
+      "degradacao",
+      "corte_seletivo",
+      "agua"
+    ],
+    "DETER_CLASSES": {
+      "DESMATAMENTO_CR": "desmatamento",
+      "DESMATAMENTO_VEG": "desmatamento",
+      "MINERACAO": "mineracao",
+      "CICATRIZ_DE_QUEIMADA": "fogo",
+      "DEGRADACAO": "degradacao",
+      "CS_DESORDENADO": "corte_seletivo",
+      "CS_GEOMETRICO": "corte_seletivo"
+    },
+    "TERRABRASILIS_WFS": "https://terrabrasilis.dpi.inpe.br/geoserver",
+    "PRODES_LAYER": [
+      "prodes-legal-amz",
+      "yearly_deforestation"
+    ],
+    "DETER_LAYER": [
+      "deter-amz",
+      "deter_amz"
+    ],
+    "HANSEN_ASSETS": [
+      "UMD/hansen/global_forest_change_2025_v1_13",
+      "UMD/hansen/global_forest_change_2024_v1_12"
+    ],
+    "MCD64_ASSET": "MODIS/061/MCD64A1",
+    "TERRAMIND_SMALL": "terratorch_terramind_v1_small",
+    "TERRAMIND_S2_CHANNELS": 12,
+    "TERRAMIND_EMBED_DIM": 384,
+    "TERRAMIND_TOKEN_GRID": 14,
+    "TERRAMIND_STATS": {
+      "S2L2A": {
+        "mean": [
+          1390.458,
+          1503.317,
+          1718.197,
+          1853.91,
+          2199.1,
+          2779.975,
+          2987.011,
+          3083.234,
+          3132.22,
+          3162.988,
+          2424.884,
+          1857.648
+        ],
+        "std": [
+          2106.761,
+          2141.107,
+          2038.973,
+          2134.138,
+          2085.321,
+          1889.926,
+          1820.257,
+          1871.918,
+          1753.829,
+          1797.379,
+          1434.261,
+          1334.311
+        ]
+      },
+      "S1GRD": {
+        "mean": [
+          -12.599,
+          -20.293
+        ],
+        "std": [
+          5.195,
+          5.89
+        ]
+      }
+    },
+    "S2_ASSET": "COPERNICUS/S2_SR_HARMONIZED",
+    "CLOUD_SCORE_ASSET": "GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED",
+    "CLOUD_SCORE_MIN": 0.6,
+    "S1_ASSET": "COPERNICUS/S1_GRD",
+    "MIN_CLEAR_FRAC": 0.5,
+    "SUBAOI_BLOCKS": 4,
+    "SUBAOI_ORIGIN": [
+      244,
+      4112
+    ],
+    "STORAGE_BUDGET_GB": 20,
+    "CUBE_PATH_NAME": "cubo_tapajos_sub.zarr",
+    "FOREST": [
+      3
+    ],
+    "PASTURE": [
+      15
+    ],
+    "MINING": [
+      30
+    ],
+    "ANTHROPIC": [
+      15,
+      21,
+      9,
+      18,
+      19,
+      20,
+      39,
+      40,
+      41,
+      62,
+      36,
+      46,
+      47,
+      48,
+      24,
+      25,
+      30
+    ],
+    "LULC_ASSET": "projects/mapbiomas-public/assets/brazil/lulc/v1",
+    "NATURAL_FOREST": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "WATER": [
+      33
+    ],
+    "COVER_GROUPS": {
+      "floresta": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "pastagem": [
+        15
+      ],
+      "agricultura": [
+        9,
+        18,
+        19,
+        20,
+        36,
+        39,
+        40,
+        41,
+        46,
+        47,
+        48,
+        62
+      ],
+      "mosaico": [
+        21
+      ],
+      "agua": [
+        33
+      ],
+      "natural_nao_florestal": [
+        11,
+        12,
+        13,
+        29,
+        50
+      ],
+      "outros": [
+        22,
+        23,
+        24,
+        25,
+        30
+      ]
+    },
+    "LABELS_DIR": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\rotulos"
+  }
+}

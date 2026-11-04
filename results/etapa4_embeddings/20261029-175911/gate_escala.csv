@@ -1,0 +1,9 @@
+avaliacao,escala,n_pontos,todas_anomalias,desm_vs_floresta,desm_vs_pastagem,mineracao
+pontos de teste do first pass,AlphaEarth pixel 10 m (first pass),671,0.890,0.985,0.854,0.866
+pontos de teste do first pass,AlphaEarth média do patch 2.24 km,671,0.539,0.950,0.754,0.291
+pontos de teste do first pass,TerraMind S2S1 média do patch 2.24 km,671,0.567,0.894,0.671,0.396
+pontos do first pass dentro da sub-AOI,TerraMind S2S1 média do patch 2.24 km,106,0.570,0.876,0.609,0.422
+pontos do first pass dentro da sub-AOI,TerraMind S2S1 token do ponto ~160 m,106,0.836,0.916,0.690,0.856
+pontos do first pass dentro da sub-AOI,TerraMind S2S1 tokens 3x3 ~480 m,106,0.818,0.960,0.822,0.755
+pontos de teste do first pass,TerraMind S2S1 célula 320 m do ponto,671,0.812,0.940,0.716,0.800
+pontos de teste do first pass,TerraMind S2 célula 320 m do ponto,671,0.797,0.913,0.705,0.786
