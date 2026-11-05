@@ -53,6 +53,32 @@ def evaluate(scores, labels, grade, key='step', split='test', periodo='teste',
     return pd.DataFrame(rows)
 
 
+def compare(scores_a, scores_b, labels, grade, key='step', split='test', periodo='teste',
+            tipos=config.EVENT_TYPES, n_boot=300):
+    """Diferença de AUROC e AUPRC (a − b) por tarefa, com IC 95% por bootstrap PAREADO de blocos.
+    scores_a / scores_b: DataFrames patch_id, <key>, score. Só amostras com score nos dois métodos."""
+    both = scores_a[['patch_id', key, 'score']].merge(
+        scores_b[['patch_id', key, 'score']], on=['patch_id', key], suffixes=('_a', '_b')).dropna()
+    df = _merge(both.rename(columns={'score_a': 'score'}), labels, grade, key)
+    df = df.merge(both[['patch_id', key, 'score_b']], on=['patch_id', key])
+    if split is not None:
+        df = df[df['split'] == split]
+    if periodo is not None:
+        df = df[df['periodo'] == periodo]
+    rows = []
+    for tipo in [None, *tipos]:
+        t = make_task(df, tipo)
+        y, a, b, blk = t['y'].values, t['score'].values, t['score_b'].values, t['block'].values
+        if y.sum() == 0 or y.sum() == len(y):
+            continue
+        r = {'tarefa': tipo or 'todos', 'n': len(y), 'n_pos': int(y.sum())}
+        for nome, fn in (('AUROC', utils.auroc), ('AUPRC', utils.avg_precision)):
+            lo, hi = utils.block_bootstrap_diff(blk, y, a, b, fn, n=n_boot)
+            r.update({f'd{nome}': fn(y, a) - fn(y, b), f'd{nome}_lo': lo, f'd{nome}_hi': hi})
+        rows.append(r)
+    return pd.DataFrame(rows)
+
+
 def threshold_at_fpr(scores, labels, grade, fpr=0.01, key='step', split='val'):
     """Limiar operacional: quantil dos scores 'limpo' da validação. Nunca escolher no teste."""
     df = _merge(scores, labels, grade, key)

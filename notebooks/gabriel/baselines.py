@@ -10,12 +10,14 @@ Hiperparâmetros fixados a priori (k = 10, 300 árvores). Nenhum rótulo de anom
 Duas passadas em lotes de patches, para caber na memória nas AOIs completas (~11 milhões de células).
 """
 import time
+import warnings
 
 import numpy as np
 import pandas as pd
 
 import config
 import embeddings
+import features_originais as fo
 import rotulos
 
 N_FIT, N_VAL = 40_000, 10_000
@@ -70,10 +72,14 @@ def load(name, aoi, k=config.K_HIST):
     return s, ctx, {'anual': anual, 'trim': trim, 'grade': grade.reset_index()}
 
 
-def _batches(s, ctx, batch_slots=64):
+def _batches(s, ctx, batch_slots=64, cfgs=None):
     """Lê as células em lotes de slots e devolve, para as amostras do lote, as features por célula:
-    Z (n, 49, D) e delta (n, 49, D) por configuração, e espectral (n, 49, 28) = [F, F - histórico]."""
+    Z (n, 49, D) e delta (n, 49, D) por configuração, e espectral (n, 49, 28) = [F, F - histórico].
+    Se o zarr tiver `orig_cells`: 'orig' (n, 49, 40) = [O, O - histórico] com as 20 features da implementação
+    original (NaN onde falta dado) e 'fft_change' (n, 49) = mudança de textura de Fourier."""
     cells, valid, k = ctx['cells'], ctx['valid'], ctx['k']
+    cfgs = list(embeddings.CONFIGS) if cfgs is None else list(cfgs)
+    has_orig = 'orig_cells' in cells
     for b0 in range(0, ctx['n_slots'], batch_slots):
         rows = s[(s['i'] >= b0) & (s['i'] < b0 + batch_slots)]
         if rows.empty:
@@ -83,7 +89,7 @@ def _batches(s, ctx, batch_slots=64):
         vc = np.repeat(v[:, None, :], NC, axis=1)                         # (b, 49, T)
         li, tt = rows['i'].values - b0, rows['t'].values
         out = {}
-        for cfg in embeddings.CONFIGS:
+        for cfg in cfgs:
             Z = cells[f'c_{cfg}'][sl].astype(np.float32).transpose(0, 2, 1, 3)   # (b, 49, T, D)
             H = history_mean(Z, vc, k)
             out[f'Z_{cfg}'] = Z[li, :, tt]                               # (n, 49, D)
@@ -94,6 +100,12 @@ def _batches(s, ctx, batch_slots=64):
         f, hf = F[li, :, tt], HF[li, :, tt]
         out['spec'] = np.nan_to_num(np.concatenate([f, f - hf], axis=-1))
         out['ndvi_drop'] = np.nan_to_num(hf[..., 12] - f[..., 12])
+        if has_orig:
+            O = fo.original_features(F, cells['orig_cells'][sl].astype(np.float32).transpose(0, 2, 1, 3))
+            HO = history_mean(O, vc & ~np.isnan(O).any(-1), k)
+            o, ho = O[li, :, tt], HO[li, :, tt]
+            out['orig'] = np.concatenate([o, o - ho], axis=-1)
+            out['fft_change'] = fo.texture_change(o, ho)
         out['vt'] = (v, li, tt)
         yield rows, out
 
@@ -198,8 +210,10 @@ def collect_normals(s, ctx, cfgs, seed=config.SEED):
     p_tr = min(1.0, N_FIT / max(1, s['treino_normal'].sum() * NC))
     p_va = min(1.0, N_VAL / max(1, s['val_normal'].sum() * NC))
     keys = [f'{f}_{c}' for c in cfgs for f in ('static', 'delta')] + ['spec']
+    if 'orig_cells' in ctx['cells']:
+        keys.append('orig')
     acc = {sp: {k: [] for k in keys} for sp in ('tr', 'va')}
-    for rows, out in _batches(s, ctx):
+    for rows, out in _batches(s, ctx, cfgs=cfgs):
         for sp, col, p in (('tr', 'treino_normal', p_tr), ('va', 'val_normal', p_va)):
             m = rows[col].values
             if not m.any():
@@ -209,7 +223,14 @@ def collect_normals(s, ctx, cfgs, seed=config.SEED):
                 acc[sp][f'static_{c}'].append(out[f'Z_{c}'][m][pick])
                 acc[sp][f'delta_{c}'].append((out[f'Z_{c}'] - out[f'H_{c}'])[m][pick])
             acc[sp]['spec'].append(out['spec'][m][pick])
+            if 'orig' in acc[sp]:
+                acc[sp]['orig'].append(out['orig'][m][pick])
     return {sp: {k: np.concatenate(v) for k, v in d.items()} for sp, d in acc.items()}
+
+
+ORIG_TAG = 'Original'
+ORIG_IFOREST = f'{ORIG_TAG} | IForest (20 features + delta)'
+ORIG_FOURIER = f'{ORIG_TAG} | mudança de textura (Fourier)'
 
 
 def fit_all(fitdata, cfgs):
@@ -222,13 +243,29 @@ def fit_all(fitdata, cfgs):
         models[f'{tag} | IForest no delta'] = ('delta', c, IForest(tr[f'delta_{c}']))
         models[f'{tag} | Deep SVDD no delta'] = ('delta', c, DeepSVDD(tr[f'delta_{c}'], va[f'delta_{c}']))
     models['Espectral | IForest (bandas + delta)'] = ('spec', None, IForest(tr['spec']))
+    if 'orig' in tr:                      # células sem dado (NaN) ficam fora do ajuste
+        otr = tr['orig'][~np.isnan(tr['orig']).any(1)]
+        ova = va['orig'][~np.isnan(va['orig']).any(1)]
+        models[ORIG_IFOREST] = ('orig', None, IForest(otr))
+        models[f'{ORIG_TAG} | kNN (20 features + delta)'] = ('orig', None, KNN(otr))
+        models[f'{ORIG_TAG} | Deep SVDD (20 features + delta)'] = ('orig', None, DeepSVDD(otr, ova))
     return models
 
 
-def score_all(s, ctx, models, cfgs, log=True):
-    """Passada 2: pontua todas as células e agrega por amostra: máximo (principal) e média das 49 células."""
-    parts, t0, done = [], time.time(), 0
-    for rows, out in _batches(s, ctx):
+def _apply(m, X):
+    """Pontua (N, F); linhas com NaN (célula sem dado ou sem histórico) recebem NaN."""
+    bad = np.isnan(X).any(1)
+    out = np.full(len(X), np.nan, np.float64)
+    if (~bad).any():
+        out[~bad] = m(X[~bad])
+    return out
+
+
+def score_all(s, ctx, models, cfgs, log=True, keep_cells=()):
+    """Passada 2: pontua todas as células e agrega por amostra: máximo (principal) e média das 49 células.
+    `keep_cells`: nomes de métodos cujos scores por célula também são devolvidos (fusão na célula)."""
+    parts, cell_parts, t0, done = [], {k: [] for k in keep_cells}, time.time(), 0
+    for rows, out in _batches(s, ctx, cfgs=cfgs):
         n = len(rows)
         cell = {}
         for c in cfgs:
@@ -236,22 +273,34 @@ def score_all(s, ctx, models, cfgs, log=True):
             cell[f'{tag} | cosseno vs histórico'] = _cos(out[f'Z_{c}'], out[f'H_{c}'])
             cell[f'{tag} | cosseno vs mesmo trimestre (t-4, t-8)'] = _seasonal(out, c)
         cell['Espectral | queda de NDVI'] = out['ndvi_drop']
+        if 'fft_change' in out:
+            cell[ORIG_FOURIER] = out['fft_change']
         for name, (kind, c, m) in models.items():
+            if kind == 'orig':
+                cell[name] = _apply(m, out['orig'].reshape(n * NC, -1)).reshape(n, NC)
+                continue
             X = out[f'Z_{c}'] if kind == 'static' else (out[f'Z_{c}'] - out[f'H_{c}'] if kind == 'delta' else out['spec'])
             cell[name] = m(X.reshape(n * NC, -1)).reshape(n, NC)
         agg = {}
         for name, v in cell.items():
-            with np.errstate(all='ignore'):
+            with np.errstate(all='ignore'), warnings.catch_warnings():
+                warnings.simplefilter('ignore', RuntimeWarning)     # amostra sem nenhuma célula válida -> NaN
                 agg[name] = np.nanmax(v, axis=1) if not np.isnan(v).all() else np.full(n, np.nan)
                 agg[f'{name} [média]'] = np.nanmean(v, axis=1)
         parts.append(pd.DataFrame(agg, index=rows.index))
+        for k in keep_cells:
+            cell_parts[k].append(pd.DataFrame(cell[k], index=rows.index))
         done += n
         if log:
             print(f'  {done}/{len(s)} amostras  {(time.time() - t0) / 60:.1f} min', flush=True)
-    return pd.concat(parts).reindex(s.index)
+    scores = pd.concat(parts).reindex(s.index)
+    if keep_cells:
+        return scores, {k: pd.concat(v).reindex(s.index) for k, v in cell_parts.items()}
+    return scores
 
 
-def run_all(s, ctx, cfgs=('s2s1', 's2')):
+def run_all(s, ctx, cfgs=('s2s1', 's2'), keep_cells=()):
+    """Ajusta e pontua todos os baselines. Com `keep_cells`, devolve também os scores por célula desses métodos."""
     assert s['treino_normal'].any() and s['val_normal'].any(), 'sem normais de treino ou validação'
     t0 = time.time()
     fitdata = collect_normals(s, ctx, cfgs)
@@ -259,8 +308,11 @@ def run_all(s, ctx, cfgs=('s2s1', 's2')):
           f'({(time.time() - t0) / 60:.1f} min)', flush=True)
     models = fit_all(fitdata, cfgs)
     info = {f'svdd_{c}': models[f'TerraMind {c.upper()} | Deep SVDD no delta'][2].hist for c in cfgs}
+    if ORIG_IFOREST in models:
+        info['svdd_original'] = models[f'{ORIG_TAG} | Deep SVDD (20 features + delta)'][2].hist
     print(f'ajuste feito ({(time.time() - t0) / 60:.1f} min); pontuando', flush=True)
-    return score_all(s, ctx, models, cfgs), info
+    res = score_all(s, ctx, models, cfgs, keep_cells=keep_cells)
+    return (*res, info) if keep_cells else (res, info)
 
 
 def to_annual(s, scores):

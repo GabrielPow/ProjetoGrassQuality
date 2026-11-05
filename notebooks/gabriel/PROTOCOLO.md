@@ -91,3 +91,49 @@ Concordância de desmatamento por patch-ano: 73% dos patch-anos com DETER també
 (76% em RO). Só 37% dos patch-anos com PRODES têm DETER (60% em RO), porque o DETER não pega
 cortes pequenos. As fontes raster devem reduzir os normais de treino. Conferir a tabela de normais
 por cobertura depois da execução no Colab.
+
+## 6. Fusão com as features da implementação original (fixado em 04/11/2026, antes de qualquer resultado)
+
+Plano: [PLANO_JUNTAR_DEEP_LEARNING.md](../../PLANO_JUNTAR_DEEP_LEARNING.md). Rótulos, divisão e métricas não mudam.
+
+- **Features originais por célula de 320 m** (`features_originais.py`, array `orig_cells`): desvio de B2, B3,
+  B4, B8, B11, B12; desvio do NDVI; médias de GNDVI e BSI; log10 da energia do espectro de Fourier do NDVI
+  (janela de Hann, média da célula removida) em 4 anéis de frequência: (0; 0,04], (0,04; 0,08], (0,08; 0,125] e
+  > 0,125 ciclo/pixel. Junto com as médias de B2, B3, B4, B8, B11, B12 e NDVI que já existem em `spec_cells`, o
+  conjunto "Original" tem **20 features**. Célula com < 50% de pixels limpos fica NaN.
+- **Detectores "Original"**: os mesmos de `baselines.py` (IForest 300 árvores, kNN k = 10, Deep SVDD) sobre
+  `[F, F − histórico]` (40 dimensões), ajustados só em células normais de treino. **Mudança de textura (Fourier)**:
+  soma de `(log E(t) − log E_hist)²` nos anéis 3 e 4 (> 0,08 ciclo/pixel), com histórico = média dos 4
+  trimestres anteriores válidos (`K_HIST`).
+- **Regra de fusão principal: média dos z-scores robustos.** Para cada método, `z = (score − mediana) / IQR`,
+  com mediana e IQR dos scores das amostras normais de validação (`val_normal`). Score combinado = média dos z
+  dos métodos disponíveis. Na célula, a fusão é feita antes do máximo das 49 células.
+  *Por que não percentis (como estava no plano):* o percentil satura em 1 para todo score acima do maior normal,
+  e as amostras mais anômalas empatariam entre si. Média e máximo dos percentis ficam como **ablação**.
+- **Combinação principal a reportar:** Transformer AE (masked) + IForest nas features originais. Outros pares
+  (AE + queda de NDVI, AE + Fourier, AE + kNN no delta TerraMind) e outras regras são ablação. Se uma ablação
+  vencer no teste, isso é reportado como achado, sem trocar a principal.
+- **Comparação:** diferença de AUROC entre dois métodos com IC 95% por bootstrap pareado de blocos (os mesmos
+  blocos sorteados para os dois métodos em cada reamostragem).
+- Nenhum peso, limiar ou hiperparâmetro da fusão é escolhido com rótulos de anomalia.
+- **Caminho B, AE com entrada combinada** (registrado em 04/11, antes de treinar): mesma arquitetura e treino do
+  AE atual (d = 128, 4 camadas, formulação `masked`, escolhida pela perda de validação no `07`). Três entradas:
+  AE-TM (384, TerraMind S2 + S1), AE-ORIG (as 20 features originais) e AE-TM+ORIG (404). Na entrada combinada,
+  perda e score = `0,5 · MSE(dimensões TerraMind) + 0,5 · MSE(dimensões originais)`, com as dimensões padronizadas
+  pelos normais de treino. Um passo de uma célula sem dado original (NaN) vale como passo sem dado (máscara).
+  A comparação principal do J4 é AE-TM+ORIG × AE-TM, e AE-TM+ORIG × fusão principal; nenhuma entrada é
+  escolhida pelos rótulos.
+
+## 7. Teste limitado para a apresentação de 06/11/2026 (registrado em 05/11, antes de calcular)
+
+As AOIs completas ainda não foram processadas, então não existe o teste oficial (split `test` do Tapajós e
+`test_gen` de Rondônia). Os 16 patches `test` da sub-AOI **não têm nenhum evento** em 2023–2025, então também não
+servem. A apresentação usa como **teste limitado** os **blocos `val` da sub-AOI em 2023–2025** (29 patch-trimestres
+com evento, 537 limpos):
+- separados no espaço (nenhum modelo treinou nesses blocos) e no tempo (2023–2025);
+- desses blocos, só os normais de 2021–2022 foram usados (parada antecipada do AE e referência da fusão); o período
+  2023–2025 nunca foi visto;
+- o limiar operacional (FPR = 1%) vem dos patch-trimestres limpos de `val` em 2021–2022, nunca de 2023–2025.
+
+Limites, que a apresentação mostra: poucos positivos (ICs largos), sub-AOI escolhida pelos rótulos, blocos `val`
+também usados para ajuste. **Não substitui** o teste oficial da Fase 5.
