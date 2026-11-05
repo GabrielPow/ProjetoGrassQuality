@@ -25,6 +25,7 @@ import pandas as pd
 
 import config
 import dados
+import features_originais
 import rotulos
 
 CONFIGS = {'s2': ['S2L2A'], 's2s1': ['S2L2A', 'S1GRD']}
@@ -164,6 +165,11 @@ def open_cells(path, n_slots, n_steps, mode='a'):
         root.create_array('spec_cells', shape=(n_slots, n_steps, config.N_CELLS, len(CELL_SPEC_NAMES)),
                           chunks=(NB, 1, config.N_CELLS, len(CELL_SPEC_NAMES)), dtype='float16', fill_value=np.nan)
         root.attrs['spec_names'] = CELL_SPEC_NAMES
+    if 'orig_cells' not in root and mode != 'r':        # features da implementação original (PLANO_JUNTAR, Fase 1)
+        nf = len(features_originais.ORIG_CELL_NAMES)
+        root.create_array('orig_cells', shape=(n_slots, n_steps, config.N_CELLS, nf),
+                          chunks=(NB, 1, config.N_CELLS, nf), dtype='float16', fill_value=np.nan)
+        root.attrs['orig_names'] = features_originais.ORIG_CELL_NAMES
     return root
 
 
@@ -179,6 +185,9 @@ def write_step(store, cells, sl, k, t, res, s2, n2, n1):
     sc = np.full((NB, config.N_CELLS, len(CELL_SPEC_NAMES)), np.nan, np.float16)
     sc[k] = cell_spectral(s2, n2)
     cells['spec_cells'][sl, t] = sc
+    oc = np.full((NB, config.N_CELLS, len(features_originais.ORIG_CELL_NAMES)), np.nan, np.float16)
+    oc[k] = features_originais.cell_features_originais(s2, n2)
+    cells['orig_cells'][sl, t] = oc
     store['spec'][idx, t] = spectral_features(s2, n2)
     store['clear_s2'][idx, t] = (n2 > 0).mean(axis=(-2, -1))
     store['clear_s1'][idx, t] = (n1 > 0).mean(axis=(-2, -1))

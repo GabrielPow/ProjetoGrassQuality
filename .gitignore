@@ -226,3 +226,5 @@ rotulos/
 *.zarr/
 embeddings/
 checkpoints/
+
+notebooks/apresentacao.slides.html

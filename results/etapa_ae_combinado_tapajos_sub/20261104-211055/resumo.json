@@ -1,0 +1,78 @@
+{
+  "fonte": "tapajos_sub",
+  "eval_split": "train",
+  "mode": "masked",
+  "fusao_de": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\results\\etapa_fusao_tapajos_sub\\20261104-204250\\scores_trimestrais.csv.gz",
+  "checkpoints": {
+    "tm": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\checkpoints\\transformer_ae_masked_tapajos_sub.pt",
+    "orig": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\checkpoints\\transformer_ae_masked_orig_tapajos_sub.pt",
+    "tm+orig": "C:\\Users\\gabri\\Documents\\ProjetoGrassQuality\\checkpoints\\transformer_ae_masked_tm_orig_tapajos_sub.pt"
+  },
+  "val_loss": {
+    "tm": 0.4101,
+    "orig": 0.3188,
+    "tm+orig": 0.4112
+  },
+  "n_train": {
+    "tm": 26656,
+    "orig": 26581,
+    "tm+orig": 26581
+  },
+  "auroc_todos": {
+    "trimestral": {
+      "Transformer AE | masked": 0.6839,
+      "Transformer AE-ORIG | masked": 0.7211,
+      "Transformer AE-TM+ORIG | masked": 0.7198,
+      "Fusão J2 | AE + Original IForest [z_media]": 0.7067,
+      "Original | Deep SVDD (20 features + delta)": 0.7372,
+      "TerraMind S2S1 | kNN no delta": 0.7331,
+      "Espectral | queda de NDVI": 0.7136
+    },
+    "anual": {
+      "Transformer AE | masked": 0.7874,
+      "Transformer AE-ORIG | masked": 0.8868,
+      "Transformer AE-TM+ORIG | masked": 0.9248,
+      "Fusão J2 | AE + Original IForest [z_media]": 0.862,
+      "Original | Deep SVDD (20 features + delta)": 0.9503,
+      "TerraMind S2S1 | kNN no delta": 0.8989,
+      "Espectral | queda de NDVI": 0.7681
+    }
+  },
+  "pareado": [
+    {
+      "a": "Transformer AE-TM+ORIG | masked",
+      "b": "Transformer AE | masked",
+      "dAUROC": 0.0358,
+      "dAUROC_lo": -0.0032,
+      "dAUROC_hi": 0.0706
+    },
+    {
+      "a": "Transformer AE-TM+ORIG | masked",
+      "b": "Fusão J2 | AE + Original IForest [z_media]",
+      "dAUROC": 0.0131,
+      "dAUROC_lo": -0.0243,
+      "dAUROC_hi": 0.0408
+    },
+    {
+      "a": "Transformer AE-ORIG | masked",
+      "b": "Transformer AE | masked",
+      "dAUROC": 0.0372,
+      "dAUROC_lo": -0.0072,
+      "dAUROC_hi": 0.0766
+    },
+    {
+      "a": "Transformer AE-TM+ORIG | masked",
+      "b": "Transformer AE-ORIG | masked",
+      "dAUROC": -0.0014,
+      "dAUROC_lo": -0.0189,
+      "dAUROC_hi": 0.0197
+    },
+    {
+      "a": "Transformer AE-ORIG | masked",
+      "b": "Original | Deep SVDD (20 features + delta)",
+      "dAUROC": -0.0161,
+      "dAUROC_lo": -0.0581,
+      "dAUROC_hi": 0.0337
+    }
+  ]
+}

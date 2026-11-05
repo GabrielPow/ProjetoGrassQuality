@@ -100,6 +100,18 @@ def precision_at_k(y, s, k):
     return y[np.argsort(-s)[:k]].mean()
 
 
+def block_bootstrap_diff(blocks, y, s_a, s_b, fn, n=300, seed=config.SEED, q=(2.5, 97.5)):
+    """IC da diferença fn(a) − fn(b) com os MESMOS blocos sorteados para os dois métodos (pareado)."""
+    rng = np.random.default_rng(seed)
+    ub = np.unique(blocks); idx = {u: np.where(blocks == u)[0] for u in ub}
+    vals = []
+    for _ in range(n):
+        pick = np.concatenate([idx[u] for u in rng.choice(ub, len(ub))])
+        if 0 < y[pick].sum() < len(pick):
+            vals.append(fn(y[pick], s_a[pick]) - fn(y[pick], s_b[pick]))
+    return np.percentile(vals, q)
+
+
 def block_bootstrap(blocks, y, s, fn, n=300, seed=config.SEED, q=(2.5, 97.5)):
     """IC por bootstrap reamostrando blocos espaciais inteiros."""
     rng = np.random.default_rng(seed)
