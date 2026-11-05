@@ -132,15 +132,15 @@ def _seta(ax, x0, y0, x1, y1):
 def fig_pipeline():
     fig, ax = plt.subplots(figsize=(13, 4.6))
     ax.set_xlim(0, 13); ax.set_ylim(0, 4.6); ax.axis('off')
-    ax.text(0.1, 4.35, 'Implementação original (notebooks/)', color=CAT[1], fontsize=10, weight='bold')
-    ax.text(0.1, 1.95, 'Implementação do Gabriel (notebooks/gabriel/)', color=CAT[0], fontsize=10, weight='bold')
+    ax.text(0.1, 4.35, 'Implementação A (notebooks/)', color=CAT[1], fontsize=10, weight='bold')
+    ax.text(0.1, 1.95, 'Implementação B (notebooks/gabriel/)', color=CAT[0], fontsize=10, weight='bold')
     _caixa(ax, 0.1, 3.0, 2.3, 1.1, 'Sentinel-2\n(composição)', CAT[1])
     _caixa(ax, 2.9, 3.0, 2.6, 1.1, 'Índices e textura\nNDVI, GNDVI, BSI,\ndesvios, Fourier', CAT[1])
     _caixa(ax, 0.1, 0.6, 2.3, 1.1, 'Sentinel-2 + S1\ntrimestral 2019–2025', CAT[0])
     _caixa(ax, 2.9, 0.6, 2.6, 1.1, 'TerraMind Small\n(congelado)', CAT[0])
     _caixa(ax, 6.1, 1.8, 2.4, 1.1, 'Célula de 320 m\n20 features + 384-d\npor trimestre', MUTED)
-    _caixa(ax, 9.0, 3.0, 2.0, 1.1, 'A: detectores\n+ fusão de scores', CAT[2])
-    _caixa(ax, 9.0, 0.6, 2.0, 1.1, 'B: Transformer AE\nentrada combinada', CAT[2])
+    _caixa(ax, 9.0, 3.0, 2.0, 1.1, 'Caminho 1\ndetectores +\nfusão de scores', CAT[2])
+    _caixa(ax, 9.0, 0.6, 2.0, 1.1, 'Caminho 2\nTransformer AE,\nentrada combinada', CAT[2])
     _caixa(ax, 11.4, 1.8, 1.5, 1.1, 'Score de\nanomalia\n→ mapa', INK)
     for a in [(2.4, 3.55, 2.9, 3.55), (2.4, 1.15, 2.9, 1.15), (5.5, 3.55, 6.1, 2.6), (5.5, 1.15, 6.1, 2.1),
               (8.5, 2.6, 9.0, 3.4), (8.5, 2.1, 9.0, 1.3), (11.0, 3.4, 11.4, 2.6), (11.0, 1.3, 11.4, 2.1)]:
