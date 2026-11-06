@@ -68,7 +68,7 @@ uma abordagem alternativa funcional e já validada, que vale a pena documentar.
 
 4. **Modelo — um classificador temporal pequeno sobre os embeddings**
    Em vez de classificar um único ano isoladamente, um `GrasslandTemporalClassifier` leve
-   (definido em [app.py](app.py)) consome toda a sequência de embeddings de 6 anos de um ponto:
+   (definido em [app.py](../../app.py)) consome toda a sequência de embeddings de 6 anos de um ponto:
    - Uma **LSTM** de 1 camada (`input_dim=64`, `hidden_dim=64`) sobre a sequência de embeddings
      anuais
    - Uma **MLP** pequena como cabeça (`Linear(64→32) → ReLU → Dropout(0.2) → Linear(32→3)`)
@@ -90,7 +90,7 @@ uma abordagem alternativa funcional e já validada, que vale a pena documentar.
    notebook também inclui um fallback opcional com dados sintéticos (`USE_SYNTHETIC = True`)
    para testar o pipeline em PyTorch sem uma conexão funcional com o Earth Engine.
 
-5. **App — interface de mapa em Streamlit ([app.py](app.py))**
+5. **App — interface de mapa em Streamlit ([app.py](../../app.py))**
    Um app de arquivo único em Streamlit que:
    - Permite clicar em um ponto no mapa de satélite/ruas (via `folium` / `streamlit-folium`)
    - Busca o embedding AlphaEarth desse ponto para cada ano do intervalo configurado
@@ -124,8 +124,8 @@ finais do próprio notebook):
 Terceira frente, em andamento: detecção não supervisionada de perturbações ambientais
 (desmatamento, garimpo, fogo, degradação) na Amazônia a partir de embeddings TerraMind de séries
 Sentinel-2/Sentinel-1, com um autoencoder Temporal Transformer. Plano e status:
-[PLANO_IMPLEMENTACAO_ANOMALIA.md](PLANO_IMPLEMENTACAO_ANOMALIA.md); protocolo de avaliação fixado:
-[notebooks/gabriel/PROTOCOLO.md](notebooks/gabriel/PROTOCOLO.md). Os notebooks rodam na ordem
+[PLANO_IMPLEMENTACAO_ANOMALIA.md](../../PLANO_IMPLEMENTACAO_ANOMALIA.md); protocolo de avaliação fixado:
+[notebooks/gabriel/PROTOCOLO.md](../../notebooks/gabriel/PROTOCOLO.md). Os notebooks rodam na ordem
 `01_ambiente` → `02_rotulos` → `03_cubo_sentinel` → `04_inspecao_cubo`.
 
 ### Limitações de infraestrutura

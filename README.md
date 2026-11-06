@@ -1,294 +1,196 @@
-# ProjetoGrassQuality — Grassland Quality Visualizer
+# Detecção de perturbações na Amazônia sem rótulos
 
-A prototype that estimates pasture (grassland) quality — **Low / Medium / High** — for any
-point on the map in Brazil, by combining Google Earth Engine's **AlphaEarth satellite
-embeddings** with a small classifier trained on **MapBiomas Pastagem (Qualidade)** labels.
+**IBM8924 — Projeto de Deep Learning · Grupo 1 · 2026.2**
 
-Given a lat/lon, the app pulls that point's multi-year AlphaEarth embedding sequence from
-Earth Engine, runs it through a trained temporal classifier, and shows the predicted class
-together with the per-class probabilities.
+Este projeto testa se uma IA consegue apontar, trimestre a trimestre, onde a floresta amazônica está sendo
+perturbada (desmatamento, garimpo, fogo, degradação) **sem nunca ver um exemplo rotulado**. A ideia é aprender
+como um lugar normal evolui e marcar o que foge disso.
 
-## Tracks in this repo
+O pipeline final junta duas implementações do grupo:
 
-This repo covers three things:
+- **Implementação original** (`notebooks/01`–`07`): recortes Sentinel-2, índices espectrais (NDVI, GNDVI, BSI),
+  textura por Fourier e um classificador de vigor de pastagem por regressão logística.
+- **Implementação TerraMind** (`notebooks/gabriel/`): cubo trimestral Sentinel-2 + Sentinel-1 (2019–2025),
+  embeddings do *foundation model* TerraMind (IBM + ESA) e um **Transformer autoencoder temporal** treinado só
+  com lugares normais.
 
-1. **`notebooks/` — the assignment's minimum required pipeline** (IBM8924 — AC de Projeto
-   2026.2, Grupo 1): raw Sentinel-2 image patches (not embeddings) over the same MapBiomas
-   pasture-vigor points, a trivial baseline, and a shallow logistic-regression baseline —
-   see [Minimum required pipeline](#minimum-required-pipeline-notebooks) below.
-2. **`model/` + `app.py` — an additional, more advanced model** (AlphaEarth embeddings +
-   an LSTM classifier, plus a Streamlit map UI), built before the raw-image pipeline above
-   and kept as a bonus beyond the assignment's minimum. Described next.
-3. **`notebooks/gabriel/` — Amazon anomaly detection** with TerraMind embeddings, in progress — see
-   [Amazon anomaly detection](#amazon-anomaly-detection-notebooksgabriel).
+A junção (`08_fusao`, `09_ae_combinado`) leva as 20 features clássicas da implementação original para a mesma
+grade de células de 320 m do TerraMind e testa dois jeitos de combiná-las com o autoencoder.
 
-## Advanced bonus model: AlphaEarth embeddings + LSTM (beyond the assignment minimum)
+> **Aviso.** Os resultados abaixo vêm de uma **sub-área de teste** (35,8 km × 35,8 km, 256 patches, 1,3% do
+> planejado). As áreas de estudo completas ainda não foram processadas. Os números são preliminares e têm
+> intervalos de confiança largos (ver [Limitações](docs/RELATORIO_TECNICO.md#63-limitações)).
 
-Not required by the assignment rubric (which asks for a raw-image tensor and a shallow
-baseline — see [Minimum required pipeline](#minimum-required-pipeline-notebooks)), but kept
-because it's a working, validated alternative approach worth documenting.
+---
 
-1. **Base representation — AlphaEarth (Google Earth Engine)**
-   Instead of hand-engineering spectral indices (NDVI, etc.), the project uses Earth Engine's
-   `GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL` collection — AlphaEarth's pre-trained satellite
-   embeddings. Each pixel/year is already reduced by Google's foundation model to a 64-dimensional
-   vector (bands `A00`…`A63`) that summarizes that location's yearly satellite signal (optical,
-   radar, texture, etc.), so no raw imagery needs to be downloaded or processed by hand.
+## 1. Pergunta de pesquisa e hipóteses
 
-2. **Labels — MapBiomas Pastagem (Vigor)**
-   Training points are labeled using MapBiomas' **Pasture Vigor** asset
-   (`mapbiomas_collection90_pasture_vigor_v1`, reference year 2022), which is used as a
-   stand-in for "quality" — **1/2/3 = low/medium/high vigor**. The vigor layer is masked
-   to pasture-only pixels using MapBiomas' land-use/land-cover asset (class code `15` =
-   Pasture) before sampling, so labels only come from land that MapBiomas itself classifies
-   as pasture. Because MapBiomas' vigor map is itself a model output rather than field
-   ground truth, it's best treated as a large, somewhat noisy training signal — the notebook
-   flags swapping in LAPIG's field-validated points as a natural next step.
+**Pergunta central.** Embeddings de um *foundation model* (TerraMind), analisados ao longo do tempo, detectam
+perturbações na Amazônia sem rótulos melhor do que features espectrais clássicas e do que o mesmo embedding sem
+histórico?
 
-   Labeled points are drawn with `ee.Image.stratifiedSample` (100 points per vigor class,
-   scale 30 m, seed 42) so the 3 classes come out balanced from the start, over a ~65 km ×
-   65 km (~4,977 km²) test region around Goiânia, Goiás — chosen because published,
-   field-validated pasture-degradation data exists there for later benchmarking.
+| | Hipótese | Resultado na sub-área |
+|---|---|---|
+| **H1** | Um score de anomalia sobre embeddings de *foundation model* separa perturbação de normal melhor que a queda de NDVI. | Confirmada no teste rápido com AlphaEarth (0,89 × 0,82). **Não confirmada** com TerraMind no teste limitado (AE 0,67 × NDVI 0,77, ICs sobrepostos). |
+| **H2** | Olhar o histórico (comparar com trimestres anteriores) detecta melhor que olhar só o trimestre atual. | Ganho pequeno por trimestre (0,73 × 0,71). O Transformer AE ainda não supera (0,68). |
+| **H3** | Juntar features clássicas e TerraMind detecta melhor que cada um sozinho. | Inconclusiva: ajudou no diagnóstico (0,68 → 0,72), piorou no teste limitado (0,63). |
+| **H4** | Dar a nota por célula pequena (320 m) detecta melhor que por patch inteiro (2,24 km). | Confirmada: quanto maior o pedaço, pior; eventos pequenos somem na média. |
 
-3. **Dataset**
-   For each of the 300 labeled sample points, the AlphaEarth embedding was pulled at each
-   point (`sampleRegions`, scale 10 m) for a run of years (2018–2023, 6 years) and stacked
-   into a sequence, so a training example is `(6 years × 64-dim embedding) → vigor class`.
-   Only points with a complete 6-year sequence are kept (all 300/300 in this run). The
-   resulting array is checked into `model/grassland_embeddings_dataset.npz` (`X`:
-   `(300, 6, 64)` float32, `y`: `(300,)` int64, balanced 100/100/100 across the 3 classes;
-   `years`: `[2018 2019 2020 2021 2022 2023]`; `label_map`: MapBiomas vigor code (1/2/3) →
-   zero-indexed model class (0/1/2)).
+As regras de avaliação foram fixadas **antes** de qualquer resultado, em
+[notebooks/gabriel/PROTOCOLO.md](notebooks/gabriel/PROTOCOLO.md).
 
-4. **Model — a small temporal classifier on top of the embeddings**
-   Rather than classifying a single year in isolation, a lightweight `GrasslandTemporalClassifier`
-   (defined in [app.py](app.py)) consumes the whole 6-year embedding sequence for a point:
-   - 1-layer **LSTM** (`input_dim=64`, `hidden_dim=64`) over the yearly embedding sequence
-   - A small **MLP head** (`Linear(64→32) → ReLU → Dropout(0.2) → Linear(32→3)`) on the LSTM's
-     final hidden state, producing logits over the 3 quality classes
-   - Softmax at inference time turns the logits into Low/Medium/High probabilities
+---
 
-   This model is trained in `model/grassland_quality_finetuning.ipynb` — the fine-tuning
-   step, since AlphaEarth already did the expensive self-supervised pretraining and this
-   notebook only trains the lightweight task-specific head on top of it. Training details:
-   - 70/15/15 train/val/test split (210/45/45 of the 300 points), batch size 16, seed 42
-   - Adam optimizer, `lr=1e-3`, `weight_decay=1e-4`, cross-entropy loss, 30 epochs
-   - Reached ~80% validation accuracy by epoch 30 (`val_loss 0.693`, `val_acc 0.800`),
-     evaluated on the held-out test set with a classification report and confusion matrix
+## 2. Instalação e execução
 
-   The resulting checkpoint is committed at `model/grassland_temporal_classifier.pt`. The
-   notebook also includes an optional synthetic-data fallback (`USE_SYNTHETIC = True`) for
-   smoke-testing the PyTorch pipeline without a working Earth Engine connection.
+### Requisitos
 
-5. **App — Streamlit map UI ([app.py](app.py))**
-   A single-file Streamlit app that:
-   - Lets you click a point on a satellite/street map (via `folium` / `streamlit-folium`)
-   - Fetches that point's AlphaEarth embedding for each year in the configured range directly
-     from Earth Engine (`ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")`)
-   - Loads a `GrasslandTemporalClassifier` checkpoint you upload (architecture parameters —
-     number of classes, hidden size, number of layers — are configurable in the sidebar so they
-     can be matched to whatever checkpoint you load, including `model/grassland_temporal_classifier.pt`)
-   - Runs the embedding sequence through the model and displays the predicted class and a
-     probability bar chart, plus the raw yearly embedding vectors
+- Python 3.13 (testado em Windows 11, CPU i5-13420H, 16 GB RAM, **sem GPU**)
+- Conta no [Google Earth Engine](https://earthengine.google.com) com um projeto GCP habilitado
+- ~10 GB livres para o cubo da sub-área; ~0,5 GB para os embeddings das áreas completas
 
-## Known limitations / next steps
+### Instalação
 
-This is a first working scaffold, not a finished pipeline (see the notebook's own closing
-notes for more):
+```bash
+python -m venv venv
+venv\Scripts\activate                 # Windows  (macOS/Linux: source venv/bin/activate)
 
-- Labels come from MapBiomas' *Pasture Vigor* map (itself a model output), not field
-  ground truth — swapping in or blending LAPIG's field-validated points would give a
-  stronger evaluation set.
-- Predictions are per-point, not per-property — a natural next step is aggregating
-  embeddings over CAR property polygons (mean/percentile pooling) once real property
-  boundaries are available.
-- "Quality" here means vegetation vigor only; it doesn't yet factor in legal/environmental
-  risk signals (CAR boundaries, PRODES/DETER deforestation flags, embargo status).
-- The MapBiomas Pasture class code (`15`) and asset/band names are worth reconfirming
-  against the current legend at brasil.mapbiomas.org, since these can shift between
-  MapBiomas collection versions.
+# Pipeline principal (TerraMind + autoencoder), versões fixadas:
+pip install -r notebooks/gabriel/requirements-local.txt
 
-## Amazon anomaly detection (`notebooks/gabriel/`)
+# Pipeline original de pastagem e app Streamlit:
+pip install -r requirements.txt
 
-Third track, in progress: unsupervised detection of environmental disturbance (deforestation,
-mining, fire, degradation) in the Amazon from TerraMind embeddings of Sentinel-2/Sentinel-1
-time series, with a Temporal Transformer autoencoder. Plan and status:
-[PLANO_IMPLEMENTACAO_ANOMALIA.md](PLANO_IMPLEMENTACAO_ANOMALIA.md); frozen evaluation protocol:
-[notebooks/gabriel/PROTOCOLO.md](notebooks/gabriel/PROTOCOLO.md). Notebooks run in order
-`01_ambiente` → `02_rotulos` → `03_cubo_sentinel` → `04_inspecao_cubo`.
+earthengine authenticate               # uma vez
+```
 
-### Infrastructure limitations
+### Ordem de execução
 
-| Constraint | How the project responds |
-|---|---|
-| ~2 GB free on Google Drive (free tier) | Runs **locally** (360 GB free disk). Pixel data is a disposable cache rebuilt from Earth Engine; only embeddings are kept (~0.4 GB for both full study areas). Nothing large goes to Drive. |
-| No local GPU (i5-13420H, 16 GB RAM) | TerraMind Small on CPU: 40 ms/patch (S2), 81 ms/patch (S2+S1), measured 29/10. Sub-area in minutes, full areas overnight. The autoencoder works on 384-d vectors and trains on CPU. |
-| Earth Engine download is the bottleneck | Block-wise, parallel, resumable requests; full areas are streamed to embeddings without storing pixels. |
-| Consequences | Full-resolution token maps (~160 m) only for a 35.8 km sub-area; full-area anomaly maps at patch resolution (2.24 km). Pixel cube limited to that sub-area (16 × 16 patches, ~5–8 GB) instead of the full area (~330 GB). |
+**Pipeline principal (detecção de anomalias)**, em `notebooks/gabriel/`:
 
-Local setup: `venv\Scripts\python -m pip install -r notebooks/gabriel/requirements-local.txt`, then
-`venv\Scripts\earthengine authenticate` once.
+| Etapa | Notebook | O que faz |
+|---|---|---|
+| 1 | `01_ambiente` | Valida TerraMind, terratorch e Earth Engine |
+| 2 | `02_rotulos` | Baixa DETER, PRODES, Hansen, MapBiomas, MODIS; grade de patches; divisão espaço-tempo |
+| 3 | `03_cubo_sentinel` | Cubo trimestral S2 + S1 da sub-área (16 × 16 patches, 28 trimestres) |
+| 4 | `04_inspecao_cubo` | Disponibilidade, nuvens, exemplos antes/depois |
+| 5 | `05_embeddings` | TerraMind Small congelado → 384 números por célula de 320 m; features clássicas |
+| 6 | `06_baselines` | Métodos simples: queda de NDVI, kNN, Isolation Forest, Deep SVDD |
+| 7 | `07_transformer_ae` | Treina o Transformer AE (masked × forecast) só com normais |
+| 8 | `08_fusao` | Fusão de scores AE + detectores nas features clássicas |
+| 9 | `09_ae_combinado` | AE com entrada combinada (TerraMind + 20 features) |
 
-## Minimum required pipeline (`notebooks/`)
+Tempo total da sub-área: ~1 h em CPU, a maior parte no download do Earth Engine.
 
-The assignment (`TODO.md`, Grupo 1) requires a labeled **image** dataset (a raw
-`X ∈ R^(N×H×W×C)` tensor, not embeddings), ≥1500 patches, a trivial baseline, a shallow
-main baseline, and specific evaluation/characterization artifacts. Since the assignment's
-suggested raw-image sources don't cover Brazil (EuroSAT = Europe only, UC Merced = US
-only), this pipeline pulls raw **Sentinel-2 L2A** imagery via Earth Engine instead —
-reusing the exact same MapBiomas pasture-vigor points and Earth Engine project as the
-bonus model above.
+Depois, `notebooks/apresentacao.ipynb` gera as figuras e tabelas em `results/apresentacao/`. Os slides finais
+estão em [notebooks/apresentacao_v2.slides.html](notebooks/apresentacao_v2.slides.html).
 
-- **`notebooks/01_dados.ipynb`** — samples pasture-vigor points across 4 years
-  (2019–2022, same AOI near Goiânia) to reach ≥1500 balanced points, extracts a 64×64
-  Sentinel-2 patch (bands B2/B3/B4/B8/B11/B12) per point, drops patches with too many
-  missing (cloud) pixels, and splits 70/15/15 into train/val/test by spatial grid block
-  (so nearby patches never land in different partitions). Writes
-  `data/processed/s2_patches.npz` and `data/processed/points_metadata.csv`.
-- **`notebooks/02_caracterizacao.ipynb`** — class distribution, per-band statistics,
-  NDVI/GNDVI histograms, an example grid per class, and commentary on imbalance/artifacts.
-- **`notebooks/03_baseline.ipynb`** — trivial baseline (majority class) vs. a logistic
-  regression on aggregated per-patch features (band means/stds + NDVI/GNDVI); accuracy,
-  macro F1, confusion matrix, and a commented error analysis (≥4 misclassified examples).
-- **`notebooks/dataset_utils.py`** — shared helpers (`load_dataset`, NDVI/GNDVI, RGB
-  composite, aggregated feature extraction) used by notebooks 02 and 03.
+Para processar as **áreas completas** (Tapajós + Rondônia, ~19 mil patches, ~3 dias, retomável):
+`python notebooks/gabriel/stream_embeddings.py`. Este passo ainda não foi executado.
 
-Run them in order: `01_dados.ipynb` → `02_caracterizacao.ipynb` → `03_baseline.ipynb`.
-`01_dados.ipynb` needs the same Earth Engine access as `app.py` and is the slowest step
-(patch extraction runs in small synchronous batches against Earth Engine) — *fill in
-actual run time here after running it*.
+**Pipeline original (vigor de pastagem, entregáveis E1–E4)**, em `notebooks/`:
+`01_dados` → `02_caracterizacao` → `03_baseline`. Os notebooks `04`–`07` são explorações (conversão
+pastagem → lavoura, exploração de mudança na Amazônia, Fourier) que alimentaram a junção.
 
-## Project structure
+### Reprodutibilidade
+
+- Semente 42 em todos os sorteios e treinos.
+- Cada execução grava configuração, commit e versões em `results/<etapa>/<data>/run.json`.
+- Rótulos de evento são usados **só para avaliar**; nenhum hiperparâmetro ou limiar é escolhido com eles.
+
+---
+
+## 3. Estrutura do repositório
 
 ```
 ProjetoGrassQuality/
-├── app.py                                    # Streamlit app: map UI + EE fetch + inference (bonus model)
-├── requirements.txt                          # Python dependencies
-├── data/
-│   └── processed/                            # E1: s2_patches.npz + points_metadata.csv (from 01_dados.ipynb)
-├── notebooks/                                # Assignment minimum pipeline (E1-E4)
-│   ├── dataset_utils.py                      # Shared helpers: NDVI/GNDVI, RGB composite, aggregated features
-│   ├── 01_dados.ipynb                        # Ingestion: MapBiomas points + Sentinel-2 patches + split
-│   ├── 02_caracterizacao.ipynb               # Characterization: stats, NDVI histograms, example grids
-│   └── 03_baseline.ipynb                     # Trivial + logistic-regression baseline, metrics, error analysis
-├── model/                                    # Bonus advanced model (not required by the assignment minimum)
-│   ├── grassland_quality_finetuning.ipynb    # Training notebook: EE extraction + LSTM fine-tuning
-│   ├── grassland_embeddings_dataset.npz      # Training data: AlphaEarth embeddings + MapBiomas labels
-│   └── grassland_temporal_classifier.pt      # Trained LSTM classifier checkpoint
-└── README.md / README_pt.md
+├── README.md                     # este arquivo
+├── LICENSE
+├── docs/
+│   ├── RELATORIO_TECNICO.md      # relatório técnico completo
+│   ├── RELATORIO_EXECUTIVO.md    # resumo de 1–2 páginas para não técnicos
+│   └── historico/                # READMEs anteriores (trilha de pastagem / AlphaEarth)
+├── notebooks/
+│   ├── 01_dados … 03_baseline    # implementação original: vigor de pastagem (Goiânia)
+│   ├── 04 … 07                   # explorações: conversão, mudança na Amazônia, Fourier
+│   ├── dataset_utils.py          # NDVI, GNDVI, features agregadas
+│   ├── apresentacao.ipynb        # gera figuras/tabelas da apresentação
+│   ├── apresentacao_v2.slides.html
+│   └── gabriel/                  # implementação TerraMind + junção
+│       ├── 01 … 09 *.ipynb       # pipeline em etapas (tabela acima)
+│       ├── PROTOCOLO.md          # regras de avaliação fixadas antes dos resultados
+│       ├── config.py             # áreas, período, grade, parâmetros
+│       ├── rotulos.py            # rótulos de evento (só avaliação) e divisão
+│       ├── dados.py              # download do cubo Sentinel via Earth Engine
+│       ├── embeddings.py         # TerraMind → fichas por célula
+│       ├── features_originais.py # 20 features clássicas por célula (NDVI, BSI, Fourier…)
+│       ├── baselines.py          # NDVI, kNN, IForest, Deep SVDD
+│       ├── modelo.py             # Transformer autoencoder temporal
+│       ├── fusao.py              # fusão de scores (z-score robusto)
+│       ├── avaliacao.py          # AUROC, AUPRC, TPR@FPR, bootstrap por blocos
+│       └── stream_embeddings.py  # processa as áreas completas sem guardar pixels
+├── experiments/amazon_anomaly_firstpass/   # teste rápido com AlphaEarth (P0)
+├── model/ + app.py               # modelo bônus: AlphaEarth + LSTM para pastagem, app Streamlit
+├── utils/                        # download Earth Engine, regiões
+├── data/processed.zip            # dados tratados da trilha de pastagem (E1)
+├── results/                      # métricas, figuras e run.json de cada etapa
+├── PLANO_IMPLEMENTACAO_ANOMALIA.md
+└── PLANO_JUNTAR_DEEP_LEARNING.md # plano da junção das duas implementações
 ```
 
-## Running it locally
+---
 
-### Prerequisites
+## 4. Resumo dos resultados
 
-- Python 3.10+
-- A Google Cloud project with the **Earth Engine API** enabled, and access to Earth Engine
-  (sign up at https://earthengine.google.com if you don't have it yet)
+**Teste limitado**: blocos de validação da sub-área do Tapajós em 2023–2025, nunca vistos nesse período
+(29 patch-trimestres com evento, 537 limpos, prevalência real ~5%). Nota do patch = maior nota das 49 células.
 
-### Setup
+| Método | AUROC | IC 95% | AUPRC | TPR @ 1% FPR | Desmat. (8) | Fogo (17) | Garimpo (9) |
+|---|---|---|---|---|---|---|---|
+| Queda de NDVI (sem IA) | **0,77** | 0,63–0,82 | 0,16 | 0,00 | 0,73 | **0,90** | **0,65** |
+| kNN no delta (TerraMind) | 0,74 | 0,63–0,82 | **0,25** | **0,07** | 0,78 | 0,89 | 0,53 |
+| Deep SVDD (features clássicas) | 0,69 | 0,48–0,72 | 0,11 | 0,00 | **0,80** | 0,78 | 0,54 |
+| Fusão de scores (AE + IForest clássico) | 0,68 | 0,61–0,76 | 0,08 | 0,00 | 0,75 | 0,77 | 0,53 |
+| Transformer AE (TerraMind) | 0,67 | 0,58–0,74 | 0,09 | 0,00 | 0,75 | 0,77 | 0,49 |
+| Transformer AE (features clássicas) | 0,66 | 0,53–0,80 | 0,08 | 0,03 | 0,68 | 0,73 | 0,60 |
+| Transformer AE (TerraMind + clássicas) | 0,63 | 0,52–0,77 | 0,08 | 0,03 | 0,66 | 0,71 | 0,57 |
 
-```bash
-# from the project root
-python -m venv venv
-venv\Scripts\activate        # Windows (PowerShell: venv\Scripts\Activate.ps1)
-# source venv/bin/activate   # macOS/Linux
+AUPRC ao acaso ≈ 0,05. Colunas por tipo de evento: AUROC.
 
-pip install -r requirements.txt
-```
+**Em uma frase:** na sub-área, a IA não superou os métodos simples. O Transformer AE ordena eventos melhor que o
+acaso (0,63–0,67), mas no limiar de 1% de alarme falso não marca nenhum dos 29 eventos. As diferenças cabem na
+incerteza de uma amostra tão pequena; o teste nas áreas completas decide a pergunta central.
 
-### Authenticate Earth Engine (once)
+**Trilha de pastagem (entregáveis E1–E4):** regressão logística sobre médias/desvios por banda + NDVI/GNDVI em
+1.800 recortes Sentinel-2 64 × 64 × 6 → acurácia **0,64** e F1 macro **0,63** no teste, contra 0,25 e 0,13 do
+baseline trivial.
 
-Run this once from a terminal in the same environment — it caches credentials to disk. The
-app itself does not run the interactive OAuth flow:
+---
 
-```bash
-earthengine authenticate
-```
+## 5. Relatórios
 
-### Reproduce the minimum required pipeline (notebooks/)
+- **[Relatório técnico completo](docs/RELATORIO_TECNICO.md)**: introdução, revisão bibliográfica, metodologia,
+  resultados, discussão e referências.
+- **[Relatório executivo](docs/RELATORIO_EXECUTIVO.md)**: 1–2 páginas para quem não é da área técnica.
+- [Protocolo de avaliação](notebooks/gabriel/PROTOCOLO.md) ·
+  [Plano da junção](PLANO_JUNTAR_DEEP_LEARNING.md) ·
+  [Slides](notebooks/apresentacao_v2.slides.html)
 
-From `notebooks/`, run in order (each needs the same Earth Engine access set up above):
+---
 
-1. `01_dados.ipynb` — *(fill in actual run time, e.g. "~40 min for ~1800 points")*
-2. `02_caracterizacao.ipynb` — *(fill in actual run time)*
-3. `03_baseline.ipynb` — *(fill in actual run time)*
+## 6. Autores, divisão de tarefas e uso de IA
 
-Library versions: see `requirements.txt` (no extra install needed beyond it —
-`dataset_utils.py` is a local module imported by notebooks 02 and 03, not a package).
-
-### Run the app
-
-```bash
-streamlit run app.py
-```
-
-This opens the app in your browser. Then:
-
-1. Enter your Earth Engine GCP project ID in the sidebar.
-2. Upload a model checkpoint — use `model/grassland_temporal_classifier.pt` for the trained
-   model included in this repo.
-3. Make sure the sidebar's architecture settings match the checkpoint: `num_classes=3`,
-   `hidden_dim=64`, `num_layers=1`, embedding years `2018–2023` (these are the defaults, and
-   match `model/grassland_temporal_classifier.pt`).
-4. Click a point on the map, then click **"Fetch embeddings and predict"** to see the
-   predicted pasture quality (Low / Medium / High) and class probabilities for that location.
-
-### Retraining / re-running the fine-tuning notebook (optional)
-
-`model/grassland_quality_finetuning.ipynb` runs standalone (in Colab or locally with
-Jupyter) and needs the same Earth Engine access as the app. It re-pulls MapBiomas labels
-and AlphaEarth embeddings, retrains the LSTM classifier, and writes out
-`grassland_embeddings_dataset.npz` and `grassland_temporal_classifier.pt`. It also has a
-`USE_SYNTHETIC = True` toggle to smoke-test the training loop without Earth Engine access.
-
-## Team & task division
-
-*(fill in before submitting — assignment requires this)*
-
-| Member | Responsibilities |
+| Integrante | Responsabilidades principais |
 |---|---|
-| *Name 1* | *e.g. `01_dados.ipynb`, Earth Engine pipeline* |
-| *Name 2* | *e.g. `02_caracterizacao.ipynb`, `03_baseline.ipynb`, README* |
+| **Gabriel Pow** | Implementação TerraMind (`notebooks/gabriel/`): rótulos, cubo Sentinel, embeddings, baselines de anomalia, Transformer AE, protocolo; junção das implementações; apresentação |
+| **Pedro Pintor** | Implementação original (`notebooks/01`–`07`): ingestão Sentinel-2, caracterização, baseline de pastagem, explorações de mudança e Fourier; utilitários Earth Engine (`utils/`) |
 
-## Generative AI usage declaration
+**IA generativa.** Claude Code (Anthropic) foi usado para explorar o código, juntar as duas implementações,
+escrever código, rascunhar textos (incluindo este README e os relatórios) e gerar figuras. As decisões de
+protocolo e os resultados foram revisados pela dupla.
 
-*(fill in / confirm before submitting — assignment requires this)*
+## 7. Licença
 
-Claude Code (Anthropic) was used to: audit the existing prototype against the assignment
-rubric (`TODO.md`), design the raw-Sentinel-2 patch-extraction pipeline and the
-spatial-block train/val/test split, and scaffold `notebooks/01_dados.ipynb`,
-`02_caracterizacao.ipynb`, `03_baseline.ipynb`, and `dataset_utils.py`. The notebooks were
-not yet executed against live Earth Engine data at the time of writing — *update this
-section, and the discussion below, with any further AI-assisted work plus final
-human-reviewed results before submission*.
-
-## Discussion
-
-*(assignment requires ≤2 printed pages covering the sections below — this is a skeleton;
-fill in with real numbers/observations after running the three notebooks in `notebooks/`)*
-
-**Problem.** Estimate pasture/grassland quality (proxied by MapBiomas vigor: low/medium/
-high) from satellite imagery, for a region in Brazil where the assignment's suggested
-image datasets (EuroSAT, UC Merced) don't apply since they don't cover Brazil.
-
-**Data.** *(sources, license, period, point count after QC — from `01_dados.ipynb`)*
-
-**Characterization.** *(class balance, per-band stats, NDVI distribution, notable
-artifacts — from `02_caracterizacao.ipynb`)*
-
-**Experimental protocol.** 70/15/15 split by spatial grid block (no scene leakage across
-partitions), fixed seed (42).
-
-**Baseline and results.** *(trivial vs. logistic-regression accuracy/F1 macro, confusion
-matrix, error analysis — from `03_baseline.ipynb`)*
-
-**Limitations.** Vigor label is a model output, not field ground truth (see
-[Known limitations](#known-limitations--next-steps) above); patches are single points in
-time/space, not property-level aggregates.
-
-**Future work.** Three directions (also see the bonus model's own list above): (1) swap in
-or blend LAPIG field-validated points for evaluation; (2) compare this raw-image shallow
-baseline against the AlphaEarth-embedding LSTM on the *same* points, as a controlled
-ablation of embeddings vs. raw pixels; (3) aggregate over CAR property polygons instead of
-points once boundaries are available.
+Código sob a licença [MIT](LICENSE). Os dados de terceiros seguem as licenças das fontes: Sentinel-1/2
+(Copernicus, uso livre), MapBiomas (CC BY-SA 4.0), Hansen GFC (CC BY 4.0), DETER/PRODES (INPE, acesso
+aberto), MODIS MCD64A1 (NASA, uso livre), TerraMind (pesos abertos, Apache 2.0).
