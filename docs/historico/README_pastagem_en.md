@@ -62,7 +62,7 @@ because it's a working, validated alternative approach worth documenting.
 
 4. **Model — a small temporal classifier on top of the embeddings**
    Rather than classifying a single year in isolation, a lightweight `GrasslandTemporalClassifier`
-   (defined in [app.py](app.py)) consumes the whole 6-year embedding sequence for a point:
+   (defined in [app.py](../../app.py)) consumes the whole 6-year embedding sequence for a point:
    - 1-layer **LSTM** (`input_dim=64`, `hidden_dim=64`) over the yearly embedding sequence
    - A small **MLP head** (`Linear(64→32) → ReLU → Dropout(0.2) → Linear(32→3)`) on the LSTM's
      final hidden state, producing logits over the 3 quality classes
@@ -80,7 +80,7 @@ because it's a working, validated alternative approach worth documenting.
    notebook also includes an optional synthetic-data fallback (`USE_SYNTHETIC = True`) for
    smoke-testing the PyTorch pipeline without a working Earth Engine connection.
 
-5. **App — Streamlit map UI ([app.py](app.py))**
+5. **App — Streamlit map UI ([app.py](../../app.py))**
    A single-file Streamlit app that:
    - Lets you click a point on a satellite/street map (via `folium` / `streamlit-folium`)
    - Fetches that point's AlphaEarth embedding for each year in the configured range directly
@@ -113,8 +113,8 @@ notes for more):
 Third track, in progress: unsupervised detection of environmental disturbance (deforestation,
 mining, fire, degradation) in the Amazon from TerraMind embeddings of Sentinel-2/Sentinel-1
 time series, with a Temporal Transformer autoencoder. Plan and status:
-[PLANO_IMPLEMENTACAO_ANOMALIA.md](PLANO_IMPLEMENTACAO_ANOMALIA.md); frozen evaluation protocol:
-[notebooks/gabriel/PROTOCOLO.md](notebooks/gabriel/PROTOCOLO.md). Notebooks run in order
+[PLANO_IMPLEMENTACAO_ANOMALIA.md](../../PLANO_IMPLEMENTACAO_ANOMALIA.md); frozen evaluation protocol:
+[notebooks/gabriel/PROTOCOLO.md](../../notebooks/gabriel/PROTOCOLO.md). Notebooks run in order
 `01_ambiente` → `02_rotulos` → `03_cubo_sentinel` → `04_inspecao_cubo`.
 
 ### Infrastructure limitations
