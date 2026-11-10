@@ -218,6 +218,13 @@ Só se J1/J2 mostrarem ganho, ou para fechar o E3.
 > ~19 h) + ~12–16 h de baselines, treino e pontuação. Primeiro passo sugerido: `stream_embeddings.py tapajos
 > --max-tasks 40` (~5 min) para medir a velocidade real e testar as features originais no fluxo.
 
+> **Preparada para a máquina dedicada (10/11):** a Fase 5 inteira virou um script retomável,
+> `notebooks/gabriel/fase5_execucao_completa/fase5.py` (etapas `stream_tapajos`, `stream_norte_ro`, `ajuste`, `pontuacao`, `fusao`,
+> `avaliacao`), com GPU opcional, login por conta de serviço do Earth Engine e `rodar_fase5.bat`, que roda de novo
+> sozinho depois de uma queda. O pacote para a máquina (sem GitHub) sai de `empacotar_servidor.py`. Tudo da execução completa fica na pasta
+> `notebooks/gabriel/fase5_execucao_completa/`; passo a passo no `SERVIDOR.md` dessa pasta. As decisões (o que ajusta em quê, referências da fusão, splits) estão no docstring do
+> `fase5.py` e seguem o PROTOCOLO, seções 6 e 7.
+
 - [ ] Rodar `stream_embeddings.py` em `tapajos` e `norte_ro` **com a Fase 1 já integrada**.
 - [ ] Retreinar no Tapajós completo (AE-TM e, se for o caso, AE-TM+ORIG); ajustar detectores e percentis de fusão
       só com normais de `train` / `val`.
