@@ -117,6 +117,19 @@ def _atomic_save(obj, path):
     os.replace(tmp, path)
 
 
+def _device(device=None):
+    """'cuda', 'cpu' ou None/'auto' (= GPU se houver)."""
+    import torch
+    if device in (None, 'auto'):
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    return torch.device(device)
+
+
+def _cpu_state(model):
+    """state_dict em CPU: checkpoints gravados na GPU abrem em qualquer máquina."""
+    return {k: w.detach().cpu().clone() for k, w in model.state_dict().items()}
+
+
 def build_model(d_model=128, layers=4, heads=4, bottleneck=64, dropout=0.1, d_in=D):
     import torch
     import torch.nn as nn
@@ -158,16 +171,17 @@ class Trainer:
 
     def __init__(self, Xtr, Vtr, TFtr, Xva, Vva, TFva, mode='forecast', d_model=128, layers=4, epochs=40,
                  patience=6, lr=1e-3, batch=512, seed=config.SEED, threads=8, log=True, entrada='tm',
-                 resume_path=None):
+                 resume_path=None, device=None):
         import torch
         torch.manual_seed(seed); torch.set_num_threads(threads)
+        self.device = _device(device)          # fora de cfg: um checkpoint de CPU continua na GPU e vice-versa
         self.mode, self.log, self.entrada = mode, log, entrada
         d_in = Xtr.shape[-1]
         assert d_in == ENTRADAS[entrada], f'entrada {entrada} espera {ENTRADAS[entrada]} dimensões, veio {d_in}'
         self.groups = grupos(entrada)
         flat = Xtr.reshape(-1, d_in).astype(np.float32)
         self.mu = np.nanmean(flat, 0); self.sd = np.nanstd(flat, 0) + 1e-6
-        self.model = build_model(d_model, layers, d_in=d_in)
+        self.model = build_model(d_model, layers, d_in=d_in).to(self.device)
         self.cfg = dict(mode=mode, d_model=d_model, layers=layers, epochs=epochs, patience=patience, lr=lr,
                         batch=batch, seed=seed, n_train=len(Xtr), n_val=len(Xva), K=K_SEQ,
                         entrada=entrada, d_in=d_in)
@@ -177,7 +191,7 @@ class Trainer:
         g = torch.Generator().manual_seed(seed)
         self.curve, best, wait, best_state, start, stopped, t_prev = [], np.inf, 0, None, 0, False, 0.0
         if resume_path is not None and os.path.exists(resume_path):
-            ck = torch.load(resume_path, weights_only=False)
+            ck = torch.load(resume_path, weights_only=False, map_location='cpu')
             if ck['cfg'] == self.cfg:
                 self.model.load_state_dict(ck['model']); opt.load_state_dict(ck['opt']); sched.load_state_dict(ck['sched'])
                 g.set_state(ck['gen']); torch.set_rng_state(ck['rng'])
@@ -196,7 +210,7 @@ class Trainer:
             self.model.train()
             tl, nb = 0.0, 0
             for idx in torch.randperm(len(tr[0]), generator=g).split(batch):
-                x, v, tf = (a[idx] for a in tr)
+                x, v, tf = (a[idx].to(self.device) for a in tr)
                 hide = self._hide_train(v, g)
                 rec = self.model(x, v, tf, hide)
                 m = hide & v
@@ -210,12 +224,12 @@ class Trainer:
                 print(f'  época {ep + 1:>2}: treino {tl / nb:.4f}  val {vl:.4f}  ({(time.time() - t0) / 60:.1f} min)', flush=True)
             if vl < best - 1e-5:
                 best, wait = vl, 0
-                best_state = {k: w.clone() for k, w in self.model.state_dict().items()}
+                best_state = _cpu_state(self.model)
             else:
                 wait += 1
                 stopped = wait >= patience
             if resume_path is not None:
-                _atomic_save({'cfg': self.cfg, 'epoch': ep + 1, 'stopped': stopped, 'model': self.model.state_dict(),
+                _atomic_save({'cfg': self.cfg, 'epoch': ep + 1, 'stopped': stopped, 'model': _cpu_state(self.model),
                               'opt': opt.state_dict(), 'sched': sched.state_dict(), 'gen': g.get_state(),
                               'rng': torch.get_rng_state(), 'curve': self.curve, 'best': best, 'wait': wait,
                               'best_state': best_state}, resume_path)
@@ -239,7 +253,7 @@ class Trainer:
         hide = torch.zeros_like(v)
         hide[:, -1] = True                                         # o passo t sempre escondido
         if self.mode == 'masked':                                   # + ~25% dos passos de contexto
-            hide[:, :-1] = (torch.rand(v[:, :-1].shape, generator=g) < 0.25) & v[:, :-1]
+            hide[:, :-1] = (torch.rand(v[:, :-1].shape, generator=g) < 0.25).to(v.device) & v[:, :-1]
         return hide
 
     def _last_error(self, x, v, tf, batch=4096):
@@ -250,11 +264,11 @@ class Trainer:
         out = []
         with torch.no_grad():
             for i in range(0, len(x), batch):
-                xb, vb, tb = x[i:i + batch], v[i:i + batch], tf[i:i + batch]
+                xb, vb, tb = (a[i:i + batch].to(self.device) for a in (x, v, tf))
                 hide = torch.zeros_like(vb); hide[:, -1] = True
                 rec = self.model(xb, vb, tb, hide)
                 e = self._step_err(rec[:, -1], xb[:, -1])
-                out.append(torch.where(vb[:, -1], e, torch.full_like(e, float('nan'))))
+                out.append(torch.where(vb[:, -1], e, torch.full_like(e, float('nan'))).cpu())
         return torch.cat(out).numpy()
 
     def val_loss(self, va):
@@ -265,24 +279,25 @@ class Trainer:
         return self._last_error(*self._tensors(X, V, TF))
 
     def save(self, path):
-        _atomic_save({'state': self.model.state_dict(), 'mu': self.mu, 'sd': self.sd, 'cfg': self.cfg,
+        _atomic_save({'state': _cpu_state(self.model), 'mu': self.mu, 'sd': self.sd, 'cfg': self.cfg,
                       'curve': self.curve}, path)
 
     @classmethod
-    def load(cls, path, threads=8):
+    def load(cls, path, threads=8, device=None):
         """Carrega um checkpoint salvo por `save` só para pontuar (sem treinar). Checkpoints anteriores à
         Fase 4 não têm `entrada`: são 'tm'."""
         import torch
-        ck = torch.load(path, weights_only=False)
+        ck = torch.load(path, weights_only=False, map_location='cpu')
         torch.set_num_threads(threads)
         self = cls.__new__(cls)
+        self.device = _device(device)
         self.cfg, self.mode, self.log = ck['cfg'], ck['cfg']['mode'], False
         self.entrada = ck['cfg'].get('entrada', 'tm')
         self.groups = grupos(self.entrada)
         self.mu, self.sd, self.curve = ck['mu'], ck['sd'], ck.get('curve', [])
         self.model = build_model(ck['cfg']['d_model'], ck['cfg']['layers'], d_in=len(ck['mu']))
         self.model.load_state_dict(ck['state'])
-        self.model.eval()
+        self.model.to(self.device).eval()
         self.best_val = min((c['val'] for c in self.curve), default=np.nan)
         return self
 
@@ -305,26 +320,29 @@ def score_all(trainer, s, ctx, cfg='s2s1', log=True):
     return pd.concat(errs).reindex(rows.index)
 
 
-def local_normalize(err, s):
+def local_normalize(err, s, ref=None):
     """PLANO 6.4: z-score do erro de cada célula pelos erros das células normais de validação da mesma
-    cobertura do patch (floresta, pastagem, ...). Coberturas sem normais de validação usam todos os normais."""
+    cobertura do patch (floresta, pastagem, ...). Coberturas sem normais de validação usam todos os normais.
+    ref = (err_ref, s_ref): tira as referências de outra AOI (Rondônia não tem `val`: usa as do Tapajós)."""
     rows = s.loc[err.index]
-    ref = err[rows['val_normal'].values].values
+    ref_err, ref_rows = (err, rows) if ref is None else (ref[0], ref[1].loc[ref[0].index])
+    vn = ref_rows['val_normal'].values
+    ref_v = ref_err.values[vn]
     covers = rows['cobertura'].values
-    allmu, allsd = np.nanmean(ref), np.nanstd(ref) + 1e-9
+    allmu, allsd = np.nanmean(ref_v), np.nanstd(ref_v) + 1e-9
     out = np.empty_like(err.values)
     for c in np.unique(covers):
         m = covers == c
-        rc = err[(rows['val_normal'] & (rows['cobertura'] == c)).values].values
+        rc = ref_err.values[vn & (ref_rows['cobertura'].values == c)]
         ok = np.count_nonzero(~np.isnan(rc)) >= 49 * 20
         mu, sd = (np.nanmean(rc), np.nanstd(rc) + 1e-9) if ok else (allmu, allsd)
         out[m] = (err.values[m] - mu) / sd
     return pd.DataFrame(out, index=err.index)
 
 
-def patch_scores(err, s, name):
+def patch_scores(err, s, name, ref=None):
     """Agrega as células: máximo (principal) e média, com e sem normalização local (ignora células sem dado)."""
-    z = local_normalize(err, s)
+    z = local_normalize(err, s, ref)
     return pd.DataFrame({f'{name}': err.max(axis=1), f'{name} [média]': err.mean(axis=1),
                          f'{name} + norm. local': z.max(axis=1), f'{name} + norm. local [média]': z.mean(axis=1)},
                         index=err.index)

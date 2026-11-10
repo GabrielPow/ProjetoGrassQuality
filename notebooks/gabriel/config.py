@@ -4,6 +4,7 @@ Desde 29/10 o fluxo principal é **local** (Windows, CPU; TerraMind Small a ~40 
 restam só 2 GB no Google Drive. O Colab continua possível, mas os pixels vão para o disco temporário da
 VM e nunca para o Drive. Ver "Limitações de infraestrutura" no PLANO.
 """
+import os
 import sys
 from pathlib import Path
 
@@ -15,7 +16,10 @@ except ImportError:
 
 # ---- caminhos ----
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT = Path('/content/drive/MyDrive/ProjetoGrassQuality') if IN_COLAB else REPO_ROOT
+# GRASS_DATA_ROOT: pasta dos dados (rotulos/, embeddings/, checkpoints/, results/) quando não é a raiz do
+# repositório, por exemplo um disco maior na máquina da Fase 5 (ver SERVIDOR.md).
+DATA_ROOT = (Path('/content/drive/MyDrive/ProjetoGrassQuality') if IN_COLAB
+             else Path(os.environ.get('GRASS_DATA_ROOT', REPO_ROOT)))
 DATA_DIR = DATA_ROOT / 'data'
 EMBEDDINGS_DIR = DATA_ROOT / 'embeddings'
 CHECKPOINTS_DIR = DATA_ROOT / 'checkpoints'
@@ -131,6 +135,8 @@ COVER_GROUPS = {
 
 # Diretório de rótulos (grade, eventos, rótulos trimestrais) de cada AOI
 LABELS_DIR = DATA_ROOT / 'rotulos'
+# Chave JSON da conta de serviço do Earth Engine (Fase 5). Ignorada pelo git e fora do pacote do servidor.
+CHAVES_DIR = REPO_ROOT / 'chaves'
 
 
 def as_dict():

@@ -228,3 +228,10 @@ embeddings/
 checkpoints/
 
 notebooks/apresentacao.slides.html
+
+# Fase 5: pacote para a máquina dedicada e chaves da conta de serviço (nunca versionar)
+ProjetoGrassQuality_servidor_*.zip
+chaves/*
+!chaves/LEIAME.md
+VERSAO.txt
+results/fase5_teste/

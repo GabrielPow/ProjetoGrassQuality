@@ -38,11 +38,15 @@ CELL_SPEC_NAMES = [f'{b}_media' for b in config.S2_BANDS] + ['NDVI_media', 'NBR_
 
 # ---------------- modelo ----------------
 
-def load_model(threads=8):
+def load_model(threads=8, device=None):
+    """TerraMind Small congelado. device: 'cuda', 'cpu' ou None (= GPU se houver). Os embeddings em GPU não são
+    idênticos bit a bit aos de CPU (ordem das somas), mas a diferença é desprezível perto do float16 em que são salvos."""
     import torch
     from terratorch.registry import BACKBONE_REGISTRY
     torch.set_num_threads(threads)
-    m = BACKBONE_REGISTRY.build(config.TERRAMIND_SMALL, pretrained=True, modalities=['S2L2A', 'S1GRD']).eval()
+    if device in (None, 'auto'):
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    m = BACKBONE_REGISTRY.build(config.TERRAMIND_SMALL, pretrained=True, modalities=['S2L2A', 'S1GRD']).eval().to(device)
     for p in m.parameters():
         p.requires_grad = False
     return m
@@ -72,11 +76,12 @@ def embed(model, inputs, batch=32, tokens=False):
     """inputs: {modalidade: (N, C, 224, 224)}. Retorna z (N, D), células (N, 49, D) float16 e, se pedido, tokens."""
     import torch
     n = len(next(iter(inputs.values())))
+    dev = next(model.parameters()).device
     zs, cs, toks = [], [], []
     with torch.inference_mode():
         for i in range(0, n, batch):
-            out = model({k: torch.from_numpy(np.ascontiguousarray(v[i:i + batch])) for k, v in inputs.items()})[-1]
-            out = out.numpy()
+            out = model({k: torch.from_numpy(np.ascontiguousarray(v[i:i + batch])).to(dev) for k, v in inputs.items()})[-1]
+            out = out.float().cpu().numpy()
             zs.append(out.mean(axis=1))
             cs.append(pool_cells(out).astype(np.float16))
             if tokens:
@@ -265,11 +270,19 @@ def slot_patch_ids(grade, layout):
     return pids
 
 
-def stream_aoi(aoi, out_path, workers=10, model=None, max_tasks=None, save_every_s=300, seed=config.SEED):
+def stream_aoi(aoi, out_path, workers=10, model=None, max_tasks=None, save_every_s=180, seed=config.SEED,
+               blocks=None, max_falhas=200):
     """Baixa S2 + S1 de cada (bloco, trimestre), extrai embeddings de patch e de célula e descarta os pixels.
 
     Blocos em ordem aleatória (semente fixa): se o tempo acabar, o que já terminou é uma amostra
-    aleatória de blocos, válida para métricas. Retomável: pula (bloco, trimestre) com `done`."""
+    aleatória de blocos, válida para métricas. Retomável: pula (bloco, trimestre) com `done`.
+
+    Robustez (Fase 5): um (bloco, trimestre) cujo download falha mesmo depois das novas tentativas de
+    `dados.fetch_block` é pulado e fica pendente para a próxima chamada, em vez de derrubar o processo; só
+    mais de `max_falhas` falhas numa sessão param tudo (rede ou cota fora do ar). O estado é salvo a cada
+    `save_every_s` e também quando o processo para por erro ou Ctrl+C. Os arrays de células são gravados na
+    hora; um corte de energia perde no máximo as marcas `done` dos últimos minutos (esses passos são refeitos).
+    `blocks`: lista de nomes de bloco a processar (teste rápido da Fase 5); None = todos."""
     grade = pd.read_csv(config.LABELS_DIR / aoi / 'grade.csv')
     epsg = config.AOIS[aoi]['epsg']
     layout = block_layout(grade)
@@ -280,43 +293,67 @@ def stream_aoi(aoi, out_path, workers=10, model=None, max_tasks=None, save_every
     cells = open_cells(out_path, len(pids), len(steps))
     occupied = pids != ''
     order = np.random.default_rng(seed).permutation(len(layout))
+    if blocks is not None:
+        sel = set(blocks)
+        order = [b for b in order if layout[b]['block'] in sel]
     todo = [(b, t) for b in order for t in range(len(steps))
             if not store['done'][b * NB:(b + 1) * NB][occupied[b * NB:(b + 1) * NB], t].all()]
     if max_tasks:
         todo = todo[:max_tasks]
-    print(f'{aoi}: {len(todo)} de {len(layout) * len(steps)} (bloco, trimestre) pendentes; '
+    print(f'{aoi}: {len(todo)} de {len(order) * len(steps)} (bloco, trimestre) pendentes; '
           f'{workers} downloads em paralelo', flush=True)
 
     def fetch(b, t):
         s, e = rotulos.step_bounds(steps[t])
         args = (layout[b]['x0'], layout[b]['y0'], epsg, s.strftime('%Y-%m-%d'),
                 (e + pd.Timedelta(days=1)).strftime('%Y-%m-%d'))
-        return b, t, dados.fetch_block('s2', *args), dados.fetch_block('s1', *args)
+        return dados.fetch_block('s2', *args), dados.fetch_block('s1', *args)
 
     model = model or load_model()
-    t0, last_save, n_done = time.time(), time.time(), 0
+    t0, last_save, n_done, n_fail = time.time(), time.time(), 0, 0
     it = iter(todo)
-    with ThreadPoolExecutor(workers) as pool:
-        running = {pool.submit(fetch, *x) for x in [next(it, None) for _ in range(2 * workers)] if x}
+    pool = ThreadPoolExecutor(workers)
+    running = {}
+
+    def submit():
+        x = next(it, None)
+        if x:
+            running[pool.submit(fetch, *x)] = x
+
+    try:
+        for _ in range(2 * workers):
+            submit()
         while running:
-            finished, running = wait(running, return_when=FIRST_COMPLETED)
+            finished, _ = wait(set(running), return_when=FIRST_COMPLETED)
             for f in finished:
-                b, t, (s2, n2), (s1, n1) = f.result()
-                k = np.sort(layout[b]['k'])                      # posições ocupadas, em ordem
-                s2, n2 = dados.block_to_patches(s2)[k], dados.block_to_patches(n2)[k]
-                s1, n1 = dados.block_to_patches(s1)[k], dados.block_to_patches(n1)[k]
-                res = embed_all_configs(model, s2, n2, s1, n1)
-                write_step(store, cells, slice(b * NB, (b + 1) * NB), k, t, res, s2, n2, n1)
-                n_done += 1
-                nxt = next(it, None)
-                if nxt:
-                    running.add(pool.submit(fetch, *nxt))
+                b, t = running.pop(f)
+                try:
+                    (s2, n2), (s1, n1) = f.result()
+                except Exception as ex:                       # download falhou: fica pendente
+                    n_fail += 1
+                    print(f'  falha no download ({layout[b]["block"]}, {steps[t]}): {type(ex).__name__}: '
+                          f'{str(ex)[:200]} | fica pendente ({n_fail} falhas nesta sessão)', flush=True)
+                    if n_fail > max_falhas:
+                        raise RuntimeError(f'{n_fail} downloads falharam nesta sessão: rede ou Earth Engine fora do ar?')
+                else:
+                    k = np.sort(layout[b]['k'])                      # posições ocupadas, em ordem
+                    s2, n2 = dados.block_to_patches(s2)[k], dados.block_to_patches(n2)[k]
+                    s1, n1 = dados.block_to_patches(s1)[k], dados.block_to_patches(n1)[k]
+                    res = embed_all_configs(model, s2, n2, s1, n1)
+                    write_step(store, cells, slice(b * NB, (b + 1) * NB), k, t, res, s2, n2, n1)
+                    n_done += 1
+                submit()
             if time.time() - last_save > save_every_s or not running:
                 save_store(store, out_path)
                 last_save = time.time()
                 el = time.time() - t0
+                falta = len(todo) - n_done - n_fail
+                eta = f'~{el / n_done * falta / 3600:.1f} h restantes' if n_done else ''
                 print(f'  {n_done}/{len(todo)} nesta sessão | {store["done"][occupied].mean():.1%} da AOI | '
-                      f'{el / 3600:.1f} h | ~{el / n_done * (len(todo) - n_done) / 3600:.1f} h restantes', flush=True)
+                      f'{el / 3600:.1f} h | {eta}', flush=True)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+        save_store(store, out_path)
     return store
 
 

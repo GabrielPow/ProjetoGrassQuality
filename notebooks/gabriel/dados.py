@@ -35,6 +35,40 @@ def _ensure_deadline():
             _deadline_set = True
 
 
+def service_account_key():
+    """Caminho do JSON da conta de serviço, ou None (= login de usuário). Ordem: variável GEE_SERVICE_ACCOUNT_KEY;
+    senão, o único .json em chaves/ na raiz do projeto. Mais de um .json em chaves/ sem a variável é erro (ambíguo)."""
+    import os
+    key = os.environ.get('GEE_SERVICE_ACCOUNT_KEY')
+    if key:
+        if not os.path.exists(key):
+            raise FileNotFoundError(f'GEE_SERVICE_ACCOUNT_KEY aponta para {key}, que não existe')
+        return key
+    found = sorted(config.CHAVES_DIR.glob('*.json')) if config.CHAVES_DIR.exists() else []
+    if len(found) > 1:
+        raise FileNotFoundError(f'{len(found)} arquivos .json em {config.CHAVES_DIR}: deixe só a chave da conta de '
+                                'serviço ou defina GEE_SERVICE_ACCOUNT_KEY')
+    return str(found[0]) if found else None
+
+
+def init_ee():
+    """Inicializa o Earth Engine. Com uma chave de conta de serviço (`service_account_key`: o .json em chaves/ ou a
+    variável GEE_SERVICE_ACCOUNT_KEY), entra sem navegador (máquina da Fase 5, ver SERVIDOR.md); o projeto é
+    GEE_PROJECT ou config.EE_PROJECT_ID. Sem chave, usa o login de usuário (`earthengine authenticate`)."""
+    import json
+    import os
+    import ee
+    project = os.environ.get('GEE_PROJECT', config.EE_PROJECT_ID)
+    key = service_account_key()
+    if key:
+        with open(key, encoding='utf-8') as f:
+            email = json.load(f)['client_email']
+        ee.Initialize(ee.ServiceAccountCredentials(email, key), project=project)
+        return f'conta de serviço {email}, projeto {project}'
+    ee.Initialize(project=project)
+    return f'login de usuário, projeto {project}'
+
+
 # ---------------- composições (Earth Engine) ----------------
 
 def _region(x0, y0, epsg, size_m):
